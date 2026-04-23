@@ -1,0 +1,133 @@
+import { Container, Graphics, Sprite, Texture } from "pixi.js";
+import Renderer, { type RendererDeps } from "./renderer";
+import { PIANO_KEYBOARD_SIZE } from "../config/layout";
+import { logger } from "../lib/logger";
+
+export interface PianoKeyboardRendererDeps extends RendererDeps {}
+
+export default abstract class PianoKeyboardRenderer extends Renderer<PianoKeyboardRendererDeps> {
+  constructor(deps: PianoKeyboardRendererDeps) {
+    super(deps);
+    this.init();
+  }
+
+  protected abstract init(): void;
+
+  public abstract draw(): void;
+
+  protected abstract drawKeys(keyHeight: number): void;
+}
+
+export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
+  protected init(): void {
+    const { width, height } = this.deps.app.screen;
+
+    this.container = new Container({
+      label: "Keyboard",
+      width: width,
+      height: PIANO_KEYBOARD_SIZE,
+      eventMode: "dynamic",
+    });
+
+    const bg = new Graphics({
+      x: 0,
+      y: height - PIANO_KEYBOARD_SIZE,
+      width: width,
+      height: PIANO_KEYBOARD_SIZE,
+    })
+      .rect(0, 0, width, PIANO_KEYBOARD_SIZE)
+      .fill("#ffffff")
+      .stroke({ color: "#000000", pixelLine: true });
+
+    this.container.addChild(bg);
+  }
+
+  public draw(): void {
+    const start = Date.now();
+
+    const { width } = this.deps.app.screen;
+
+    const keywidth = width / 75;
+
+    this.drawKeys(keywidth);
+
+    logger.draw("Piano", Date.now() - start);
+  }
+
+  protected drawKeys(keywidth: number): void {
+    const { height } = this.deps.app.screen;
+    const whiteKey = new Graphics({ label: "White key" });
+    this.container.addChild(whiteKey);
+
+    for (let i = 0; i < 75; i++) {
+      whiteKey.moveTo(i * keywidth, height - PIANO_KEYBOARD_SIZE).lineTo(i * keywidth, height);
+      if ([2, 6].includes(i % 7)) continue;
+      const blackKey = new Sprite({
+        x: i * keywidth + keywidth * 0.75,
+        y: height - PIANO_KEYBOARD_SIZE,
+        width: keywidth / 2,
+        height: (PIANO_KEYBOARD_SIZE * 2) / 3,
+        texture: Texture.WHITE,
+        alpha: 1,
+      });
+      blackKey.tint = 0x00000;
+      this.container.addChild(blackKey);
+    }
+
+    whiteKey.stroke({ color: "#000000", pixelLine: true });
+  }
+}
+
+export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
+  protected init(): void {
+    const { height } = this.deps.app.screen;
+
+    this.container = new Container({
+      label: "Keyboard",
+      width: PIANO_KEYBOARD_SIZE,
+      height: height,
+      eventMode: "dynamic",
+    });
+
+    const bg = new Graphics({ x: 0, y: 0, width: PIANO_KEYBOARD_SIZE, height })
+      .rect(0, 0, PIANO_KEYBOARD_SIZE, height)
+      .fill("#ffffff")
+      .stroke({ color: "#000000", pixelLine: true });
+
+    this.container.addChild(bg);
+  }
+
+  public draw(): void {
+    const start = Date.now();
+
+    const { height } = this.deps.app.screen;
+
+    const keyHeight = height / 75;
+
+    this.drawKeys(keyHeight);
+
+    logger.draw("Piano", Date.now() - start);
+  }
+
+  protected drawKeys(keyHeight: number): void {
+    const whiteKey = new Graphics({ label: "White key" });
+    this.container.addChild(whiteKey);
+
+    for (let i = 0; i < 75; i++) {
+      whiteKey.moveTo(0, i * keyHeight).lineTo(PIANO_KEYBOARD_SIZE, i * keyHeight);
+      if ([2, 6].includes(i % 7)) continue;
+      const blackKey = new Sprite({
+        x: 0,
+        y: (75 - i) * keyHeight - keyHeight * 1.25,
+        width: (PIANO_KEYBOARD_SIZE * 2) / 3,
+        height: keyHeight / 2,
+        texture: Texture.WHITE,
+        alpha: 1,
+      });
+      blackKey.tint = 0x00000;
+      this.container.addChild(blackKey);
+    }
+
+    whiteKey.stroke({ color: "#000000", pixelLine: true });
+  }
+}
