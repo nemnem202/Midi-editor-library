@@ -1,127 +1,111 @@
 import { useEffect, useRef, useState } from "react";
-import {
-	EditorEngine,
-	PianoRollEngine,
-	PlayerEngine,
-} from "../engines/piano-roll-engine";
+import { EditorEngine, type PianoRollEngine, PlayerEngine } from "../engines/piano-roll-engine";
 import { useMidiStore } from "../stores/use-midi-store";
-import { Action } from "../types/actions";
 import { useShortcuts } from "../hooks/useShortcuts";
-import { convertMidiFileToState, getMidiFile } from "../lib/midiconverter";
 
 export default function PianoRoll() {
-	const initialized = useRef(false);
-	const state = useMidiStore((s) => s.state);
+  const state = useMidiStore((s) => s.state);
 
-	useShortcuts();
+  useShortcuts();
 
-	useEffect(() => {
-		if (!initialized.current) {
-			getMidiFile("assets/FlyMeToTheMoon.mid")
-				.then(convertMidiFileToState)
-				.then((midiState) => {
-					useMidiStore.setState({ state: midiState });
-					initialized.current = true;
-				});
-		}
-		window.addEventListener(
-			"wheel",
-			(e) => {
-				if (e.ctrlKey) e.preventDefault();
-			},
-			{ passive: false },
-		);
-	}, []);
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) e.preventDefault();
+    };
 
-	return <>{state && <Content />}</>;
+    window.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => window.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  if (!state) return null;
+
+  return <Content />;
 }
 
 function Content() {
-	const rootDiv = useRef<HTMLDivElement>(null);
-	const engineRef = useRef<PianoRollEngine | null>(null);
-	const { dispatch, state } = useMidiStore.getState();
-	const [playerStrategy, setPlayerStrategy] = useState(true);
-	const [allowToStart, setAllowToStart] = useState(false);
+  const rootDiv = useRef<HTMLDivElement>(null);
+  const engineRef = useRef<PianoRollEngine | null>(null);
 
-	useEffect(() => {
-		if (!rootDiv.current || !allowToStart) return;
+  const dispatch = useMidiStore((s) => s.dispatch);
+  const currentTrackId = useMidiStore((s) => s.state.currentTrackId);
+  const tracks = useMidiStore((s) => s.state.tracks);
 
-		const engine = playerStrategy
-			? new PlayerEngine(rootDiv.current)
-			: new EditorEngine(rootDiv.current);
+  const [playerStrategy, setPlayerStrategy] = useState(true);
 
-		engineRef.current = engine;
+  useEffect(() => {
+    if (!rootDiv.current) return;
 
-		const startEngine = async () => {
-			await engine.init();
-		};
+    const engine = playerStrategy
+      ? new PlayerEngine(rootDiv.current)
+      : new EditorEngine(rootDiv.current);
 
-		startEngine();
+    engineRef.current = engine;
+    engine.init();
 
-		return () => {
-			engineRef.current?.destroy();
-			engineRef.current = null;
-		};
-	}, [playerStrategy, allowToStart]);
+    return () => {
+      engineRef.current?.destroy();
+      engineRef.current = null;
+    };
+  }, [playerStrategy]);
 
-	return (
-		<>
-			<div
-				ref={rootDiv}
-				style={{
-					width: "80vw",
-					height: "80vh",
-					overflow: "hidden",
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-				}}
-				onContextMenu={(e) => e.preventDefault()}
-				role="application"
-				tabIndex={-1}
-			>
-				{!allowToStart && (
-					<button type="button" onClick={() => setAllowToStart(true)}>
-						Start ?
-					</button>
-				)}
-			</div>
-			<button type="button" onClick={() => setPlayerStrategy((prev) => !prev)}>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					className="lucide lucide-arrow-right-left-icon lucide-arrow-right-left"
-				>
-					<title>Intervert</title>
-					<path d="m16 3 4 4-4 4" />
-					<path d="M20 7H4" />
-					<path d="m8 21-4-4 4-4" />
-					<path d="M4 17h16" />
-				</svg>
-			</button>
-			<select
-				value={state.currentTrackId}
-				name="choix"
-				onChange={(e) =>
-					dispatch({
-						type: Action.CHANGE_CURRENT_TRACK,
-						trackId: parseInt(e.target.value, 10),
-					})
-				}
-			>
-				{state.tracks.map((t) => (
-					<option value={t.id} key={t.id}>
-						Track {t.id}
-					</option>
-				))}
-			</select>
-		</>
-	);
+  return (
+    <div className="flex flex-col size-full gap-2">
+      {/* Zone de rendu Pixi */}
+      <div
+        ref={rootDiv}
+        className="flex-1 w-full h-full min-h-0 bg-black rounded-lg"
+        onContextMenu={(e) => e.preventDefault()}
+        role="application"
+        tabIndex={-1}
+      />
+
+      {/* Barre d'outils locale au Piano Roll */}
+      {/* <div className="flex items-center gap-4 p-2 bg-card/50 rounded-b-lg border-t">
+        <button
+          type="button"
+          className="p-2 hover:bg-accent rounded-full transition"
+          onClick={() => setPlayerStrategy((prev) => !prev)}
+        >
+          <svg
+            xmlns="http:
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <title>Intervertir Mode Joueur/Editeur</title>
+            <path d="m16 3 4 4-4 4" />
+            <path d="M20 7H4" />
+            <path d="m8 21-4-4 4-4" />
+            <path d="M4 17h16" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground" >Piste :</label>
+          <select
+            className="bg-background border rounded px-2 py-1 text-sm outline-none"
+            value={currentTrackId}
+            onChange={(e) =>
+              dispatch({
+                type: Action.CHANGE_CURRENT_TRACK,
+                trackId: parseInt(e.target.value, 10),
+              })
+            }
+          >
+            {tracks.map((t) => (
+              <option value={t.id} key={t.id}>
+                Track {t.id}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div> */}
+    </div>
+  );
 }
