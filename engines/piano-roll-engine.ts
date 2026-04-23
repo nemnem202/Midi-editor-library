@@ -50,6 +50,7 @@ export abstract class PianoRollEngine {
   protected actionsDirtyFlags = new Set<Action>();
   protected eventsDirtyFlags = new Set<Event>();
   protected hasInitialized = false;
+  private _isDestroyed = false;
 
   protected pointerHandler!: PointerActionHandler;
   protected gridRenderer!: GridRenderer;
@@ -99,6 +100,7 @@ export abstract class PianoRollEngine {
 
   public async init() {
     try {
+      this._isDestroyed = false;
       await this.app.init({
         backgroundAlpha: 1,
         resizeTo: this.root_div,
@@ -107,11 +109,22 @@ export abstract class PianoRollEngine {
         preference: "webgl",
       });
 
-      if (this.root_div) {
-        this.root_div.appendChild(this.app.canvas);
+      if (this._isDestroyed) {
+        this.app.destroy(true, { children: true, texture: true });
+        return;
       }
 
-      this.soundEngine = SoundEngine.get();
+      if (this.root_div && this.app.canvas) {
+        this.root_div.appendChild(this.app.canvas);
+      } else {
+        return;
+      }
+
+      try {
+        this.soundEngine = SoundEngine.get();
+      } catch (e) {
+        logger.info("PianoRoll: SoundEngine wait for user interaction.");
+      }
 
       this.app.stage.eventMode = "static";
       this.app.stage.hitArea = this.app.screen;
@@ -155,9 +168,7 @@ export abstract class PianoRollEngine {
       try {
         const currentTick = this.soundEngine.currentTicks;
         this.onSoundEngineTickUpdate(currentTick);
-      } catch (e) {
-        // Le SoundEngine n'est peut-être pas encore prêt
-      }
+      } catch (e) {}
     }
 
     if (this.eventsDirtyFlags.size > 0) {
@@ -238,56 +249,46 @@ export abstract class PianoRollEngine {
 
   protected abstract attachListeners(): void;
 
-  // public destroy(): void {
-  //   this.hasInitialized = false;
-
-  //   // --- AJUSTEMENT ICI ---
-  //   // SURTOUT PAS : this.soundEngine.pause();
-  //   // On veut que le son continue si on change juste de Tab (Chords/PianoRoll)
-  //   // ----------------------
-
-  //   this.pointerHandler?.destroy();
-
-  //   if (this.app) {
-  //     this.app.ticker.stop();
-
-  //     if (this.app.canvas?.parentNode) {
-  //       this.app.canvas.remove();
-  //     }
-
-  //     this.app.destroy(true, {
-  //       children: true,
-  //       texture: true,
-  //     });
-  //   }
-
-  //   logger.info("Renderer Engine destroyed (but Sound continues)");
-  // }
-
   public destroy(): void {
+    this._isDestroyed = true;
     this.hasInitialized = false;
 
-    this.pointerHandler?.destroy();
-
-    // On vérifie si app existe ET si le renderer n'est pas déjà détruit
-    if (this.app?.renderer) {
+    if (typeof window !== "undefined") {
       try {
-        // Utilisation du chaînage optionnel ?. pour le ticker
-        this.app.ticker?.stop();
+        this.pointerHandler?.destroy();
+      } catch (e) {
+        console.warn("PointerHandler destruction error", e);
+      }
+    }
 
-        if (this.app.canvas?.parentNode) {
-          this.app.canvas.remove();
+    try {
+      this.app?.ticker?.stop();
+    } catch (e) {}
+
+    const renderer = this.app?.renderer;
+
+    if (renderer) {
+      const canvas = this.app.canvas;
+      if (canvas?.parentNode) {
+        try {
+          canvas.parentNode.removeChild(canvas);
+        } catch (error) {
+          logger.warn("Could not remove canvas from DOM", error);
         }
+      }
 
-        // On entoure le destroy d'un try/catch car Pixi peut être capricieux
-        // si on le détruit deux fois de suite
+      try {
         this.app.destroy(true, {
           children: true,
           texture: true,
         });
       } catch (error) {
-        console.warn("Pixi destruction warning:", error);
+        logger.warn("Pixi app.destroy error:", error);
       }
+    } else {
+      try {
+        this.app?.destroy(false);
+      } catch (e) {}
     }
 
     logger.info("Renderer Engine destroyed (but Sound continues)");
