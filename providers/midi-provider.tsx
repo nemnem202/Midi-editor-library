@@ -2,11 +2,14 @@ import type React from "react";
 import { createContext, useCallback, useContext, useEffect, useRef } from "react";
 import { useMidiStore } from "../stores/use-midi-store";
 import SoundEngine from "../engines/sound-engine";
-import { Action } from "../types/actions";
 import type { State } from "../types/instance";
 import { logger } from "@/lib/logger";
+import { Action } from "../types/actions";
 
-const MidiContext = createContext<{ startAudio: () => Promise<void> } | null>(null);
+const MidiContext = createContext<{
+  startAudio: () => Promise<void>;
+  togglePlay: () => void;
+} | null>(null);
 
 export const useMidiActions = () => {
   const context = useContext(MidiContext);
@@ -35,14 +38,21 @@ export const MidiProvider = ({
   const state = useMidiStore((s) => s.state);
 
   const startAudio = useCallback(async () => {
-    if (!SoundEngine.initialized) {
-      await SoundEngine.init(state, (tick) => {});
+    try {
+      if (!SoundEngine.isInitialized) {
+        logger.info("Initializing SoundEngine for the first time...");
 
-      SoundEngine.get().updateMidiEvents();
+        await SoundEngine.init(state, (tick) => {});
+
+        const engine = SoundEngine.get();
+        engine.updateMidiEvents();
+      }
+    } catch (error) {
+      logger.error("CRITICAL: startAudio failed", error);
     }
+  }, [state]);
 
-    dispatch({ type: Action.TOGGLE_PLAY });
-  }, [state, dispatch]);
+  const togglePlay = () => dispatch({ type: Action.TOGGLE_PLAY });
 
-  return <MidiContext.Provider value={{ startAudio }}>{children}</MidiContext.Provider>;
+  return <MidiContext.Provider value={{ startAudio, togglePlay }}>{children}</MidiContext.Provider>;
 };

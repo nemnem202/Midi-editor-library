@@ -29,7 +29,6 @@ import {
   NOTE_ACTIONS,
   PIANO_KEYBOARD_ACTIONS,
 } from "../lib/action-map";
-import { logger } from "../lib/logger";
 import MenuRenderer from "../renderers/menu-renderer";
 import { PointerActionHandler } from "../controllers/pointerActionHandler";
 import { Action } from "../types/actions";
@@ -42,6 +41,7 @@ import {
   EditorGrayedNotesRenderer,
   PlayerGrayedNotesRenderer,
 } from "../renderers/grayed-notes-renderer";
+import { logger } from "@/lib/logger";
 
 export type Strategy = "Player" | "Midi";
 
@@ -175,6 +175,7 @@ export abstract class PianoRollEngine {
       this.processEvents();
       this.eventsDirtyFlags.clear();
     }
+
     if (this.actionsDirtyFlags.size > 0) {
       this.processActions();
       this.actionsDirtyFlags.clear();
@@ -185,7 +186,6 @@ export abstract class PianoRollEngine {
 
   protected processActions() {
     const actions = this.actionsDirtyFlags;
-
     if (this.actionsDirtyFlags.has(Action.RENDER_ALL)) {
       this.drawAll();
       return;

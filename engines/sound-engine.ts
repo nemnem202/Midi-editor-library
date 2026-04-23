@@ -1,95 +1,77 @@
-import {
-  getTransport,
-  Midi,
-  Part,
-  PolySynth,
-  type Sampler,
-  start,
-  type Synth,
-  type PolySynthOptions,
-  type SynthOptions,
-} from "tone";
+import * as Tone from "tone";
 import type { State, Track } from "../types/instance";
-import { logger } from "../lib/logger";
+import { logger } from "@/lib/logger";
 
 interface TrackInstruments {
-  piano: PolySynth;
-  guitar: PolySynth;
-  bass: PolySynth;
-  drums: PolySynth;
+  piano: Tone.PolySynth;
+  guitar: Tone.PolySynth;
+  bass: Tone.PolySynth;
+  drums: Tone.PolySynth;
 }
-
-const placeholderParams: Partial<PolySynthOptions<Synth<SynthOptions>>> = {
-  volume: -5,
-  options: {
-    envelope: {
-      attack: 0.05,
-      decay: 0.1,
-      sustain: 0.3,
-      release: 1,
-    },
-  },
-};
 
 export default class SoundEngine {
   private static engine: SoundEngine | null = null;
-  public static initialized = false;
-  private trackInstruments: TrackInstruments = SoundEngine.initTrackInstruments();
+  public static isInitialized = false;
+
+  private trackInstruments: TrackInstruments | null = null;
+  private parts: Tone.Part[] = [];
   private animationFrameId: number | null = null;
-  private parts: Part[] = [];
   private startingTick = 0;
+
   private constructor(
     private state: State,
     private onTickUpdate: (tick: number) => void
   ) {}
 
-  private static initTrackInstruments(): TrackInstruments {
-    return {
-      piano: new PolySynth(placeholderParams).toDestination(),
-      guitar: new PolySynth(placeholderParams).toDestination(),
-      bass: new PolySynth(placeholderParams).toDestination(),
-      drums: new PolySynth(placeholderParams).toDestination(),
-    };
+  public get currentTicks(): number {
+    return Tone.getTransport().ticks;
   }
 
   public static async init(state: State, onTickUpdate: (tick: number) => void) {
-    if (SoundEngine.initialized) return;
-    await start();
+    console.log("SoundEngine: static init() called");
 
-    if (!SoundEngine.engine) {
-      SoundEngine.engine = new SoundEngine(state, onTickUpdate);
-      SoundEngine.engine.setupTransport();
-      SoundEngine.engine.updateMidiEvents();
-    } else {
-      SoundEngine.engine.state = state;
-      SoundEngine.engine.onTickUpdate = onTickUpdate;
+    if (SoundEngine.isInitialized) return;
 
-      SoundEngine.engine.updateMidiEvents();
+    try {
+      await Tone.start();
+      logger.success("Audio Context Started");
+
+      if (!SoundEngine.engine) {
+        SoundEngine.engine = new SoundEngine(state, onTickUpdate);
+
+        SoundEngine.engine.trackInstruments = {
+          piano: new Tone.PolySynth().toDestination(),
+          guitar: new Tone.PolySynth().toDestination(),
+          bass: new Tone.PolySynth().toDestination(),
+          drums: new Tone.PolySynth().toDestination(),
+        };
+
+        SoundEngine.engine.setupTransport();
+      }
+
+      SoundEngine.isInitialized = true;
+      logger.success("Sound Engine fully ready");
+    } catch (e) {
+      logger.error("Failed to initialize Sound Engine", e);
+      throw e;
     }
-
-    SoundEngine.initialized = true;
   }
+
   public static get(): SoundEngine {
-    if (!SoundEngine.engine || !SoundEngine.initialized) {
-      throw new Error("SoundEngine not initialized. Call SoundEngine.init(...) first.");
-    }
+    if (!SoundEngine.engine) throw new Error("Engine not created");
     return SoundEngine.engine;
   }
 
-  private get transport() {
-    return getTransport();
-  }
-
   private setupTransport() {
-    this.transport.bpm.value = this.state.config.bpm;
-    this.transport.PPQ = this.state.config.ppq;
-    this.transport.scheduleRepeat(() => {
-      this.onTickUpdate(this.transport.ticks);
+    Tone.getTransport().bpm.value = this.state.config.bpm;
+    Tone.getTransport().PPQ = this.state.config.ppq;
+    Tone.getTransport().scheduleRepeat(() => {
+      this.onTickUpdate(Tone.getTransport().ticks);
     }, "16i");
   }
 
   public updateMidiEvents() {
-    this.transport.cancel();
+    Tone.getTransport().cancel();
     this.parts.forEach((p) => {
       p.dispose();
     });
@@ -101,11 +83,8 @@ export default class SoundEngine {
     });
   }
 
-  public get currentTicks(): number {
-    return this.transport.ticks;
-  }
-
-  private getInstrumentForTrack(index: number): PolySynth | Sampler | null {
+  private getInstrumentForTrack(index: number): Tone.PolySynth | null {
+    if (!this.trackInstruments) return null;
     switch (index) {
       case 0:
         return this.trackInstruments.piano;
@@ -120,16 +99,13 @@ export default class SoundEngine {
     }
   }
 
-  private scheduleMidiEvents(track: Track, synth: PolySynth | Sampler) {
-    const part = new Part((time, note) => {
+  private scheduleMidiEvents(track: Track, synth: Tone.PolySynth) {
+    const part = new Tone.Part((time, note) => {
       synth.triggerAttackRelease(
-        Midi(note.midi).toNote(),
+        Tone.Midi(note.midi).toNote(),
         `${note.durationTicks}i`,
         time,
         note.velocity / 100
-      );
-      logger.info(
-        `[MIDI NoteOn] Tick: ${this.transport.ticks} | Note: ${note.midi} | Velocity: ${note.velocity} `
       );
     }, this.createNotesFromTrack(track));
 
@@ -155,22 +131,21 @@ export default class SoundEngine {
   }
 
   public play() {
-    start().then(() => {
-      this.transport.ticks = this.startingTick;
-      this.transport.start();
-      this.startTickLoop();
-    });
+    logger.info("Play");
+    Tone.getTransport().ticks = this.startingTick;
+    Tone.getTransport().start();
+    this.startTickLoop();
   }
 
   public pause() {
-    this.transport.pause();
+    Tone.getTransport().pause();
     this.releaseAllInstruments();
     this.stopTickLoop();
   }
 
   public reset() {
-    this.transport.stop();
-    this.transport.position = "0:0:0";
+    Tone.getTransport().stop();
+    Tone.getTransport().position = "0:0:0";
     this.startingTick = 0;
     this.releaseAllInstruments();
     this.stopTickLoop();
@@ -179,7 +154,7 @@ export default class SoundEngine {
 
   private startTickLoop() {
     const loop = () => {
-      this.onTickUpdate(this.transport.ticks);
+      this.onTickUpdate(Tone.getTransport().ticks);
       this.animationFrameId = requestAnimationFrame(loop);
     };
     this.animationFrameId = requestAnimationFrame(loop);
@@ -197,16 +172,15 @@ export default class SoundEngine {
   }
 
   private releaseAllInstruments() {
-    Object.values(this.trackInstruments).forEach((synth) => {
-      if (synth instanceof PolySynth) {
-        synth.releaseAll();
-      }
+    if (!this.trackInstruments) return;
+    Object.values(this.trackInstruments).forEach((s) => {
+      s.releaseAll();
     });
   }
 
   public stopAll() {
     this.pause();
-    this.transport.cancel();
+    Tone.getTransport().cancel();
     this.onTickUpdate = () => {};
   }
 }
