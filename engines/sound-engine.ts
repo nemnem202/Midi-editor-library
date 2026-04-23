@@ -1,6 +1,8 @@
 import * as Tone from "tone";
 import type { State, Track } from "../types/instance";
 import { logger } from "@/lib/logger";
+import { Action } from "../types/actions";
+import { useMidiStore } from "../stores/use-midi-store";
 
 interface TrackInstruments {
   piano: Tone.PolySynth;
@@ -18,10 +20,37 @@ export default class SoundEngine {
   private animationFrameId: number | null = null;
   private startingTick = 0;
 
+  private actionsDirtyFlags = new Set<Action>();
+  private processFrameId: number | null = null;
+  private tickFrameId: number | null = null;
+
   private constructor(
     private state: State,
     private onTickUpdate: (tick: number) => void
-  ) {}
+  ) {
+    useMidiStore.subscribe((store) => {
+      this.state = store.state;
+      if (this.state.queuedActions.size > 0) {
+        this.state.queuedActions.forEach((a) => {
+          this.actionsDirtyFlags.add(a);
+        });
+      }
+    });
+
+    // Lancer la boucle de traitement des actions
+    this.startProcessLoop();
+  }
+
+  private startProcessLoop() {
+    const loop = () => {
+      if (this.actionsDirtyFlags.size > 0) {
+        this.processActions();
+        this.actionsDirtyFlags.clear();
+      }
+      this.processFrameId = requestAnimationFrame(loop);
+    };
+    this.processFrameId = requestAnimationFrame(loop);
+  }
 
   public get currentTicks(): number {
     return Tone.getTransport().ticks;
@@ -130,20 +159,53 @@ export default class SoundEngine {
     return array;
   }
 
-  public play() {
+  private processActions() {
+    const actions = this.actionsDirtyFlags;
+
+    // 1. Changement de BPM
+    if (actions.has(Action.SET_BPM)) {
+      Tone.getTransport().bpm.value = this.state.config.bpm;
+    }
+
+    // // 2. Changement de notes (Ajout, Déplacement, Suppression)
+    // if ([...actions].some((a) => MIDI_EVENT_CHANGE_ACTIONS.includes(a))) {
+    //   this.updateMidiEvents();
+    // }
+
+    // 3. Changement de la position de départ (Transport)
+    if (actions.has(Action.SET_TRANSPORT_START)) {
+      this.startingTick = this.state.transport.start;
+      // Si on joue déjà, on déplace la tête de lecture de Tone immédiatement
+      if (this.state.config.isPlaying) {
+        Tone.getTransport().ticks = this.startingTick;
+      }
+    }
+
+    // 4. PLAY / PAUSE
+    if (actions.has(Action.TOGGLE_PLAY)) {
+      logger.info("Play");
+      if (this.state.config.isPlaying) {
+        this.play();
+      } else {
+        this.pause();
+      }
+    }
+  }
+
+  private play() {
     logger.info("Play");
     Tone.getTransport().ticks = this.startingTick;
     Tone.getTransport().start();
     this.startTickLoop();
   }
 
-  public pause() {
+  private pause() {
     Tone.getTransport().pause();
     this.releaseAllInstruments();
     this.stopTickLoop();
   }
 
-  public reset() {
+  private reset() {
     Tone.getTransport().stop();
     Tone.getTransport().position = "0:0:0";
     this.startingTick = 0;
