@@ -53,7 +53,7 @@ export abstract class PianoRollEngine {
   protected eventsDirtyFlags = new Set<Event>();
   protected hasInitialized = false;
   private _isDestroyed = false;
-
+  private _resizeObserver!: ResizeObserver;
   protected pointerHandler!: PointerActionHandler;
   protected gridRenderer!: GridRenderer;
   protected backgroundRenderer!: backgroundRenderer;
@@ -130,6 +130,15 @@ export abstract class PianoRollEngine {
         return;
       }
 
+      this._resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          if (width > 0 && height > 0) {
+            this.app.renderer.resize(width, height);
+          }
+        }
+      });
+      this._resizeObserver.observe(this.root_div);
       try {
         this.soundEngine = SoundEngine.get();
       } catch (e) {
@@ -171,18 +180,18 @@ export abstract class PianoRollEngine {
     logger.info("Draw all", Date.now() - now);
   }
 
-  protected clearAll() {
-    const now = Date.now();
-    this.gridRenderer.clearContainer();
-    this.backgroundRenderer.clearContainer();
-    this.notesRenderer.clearContainer();
-    this.grayedNotesRenderer.clearContainer();
-    this.playheadRenderer.clearContainer();
-    this.loopRenderer.clearContainer();
-    this.viewportRenderer.clearContainer();
-    this.pianoKeyboardRenderer.clearContainer();
-    logger.info("Clear all", Date.now() - now);
-  }
+  // protected clearAll() {
+  //   const now = Date.now();
+  //   this.gridRenderer.clearContainer();
+  //   this.backgroundRenderer.clearContainer();
+  //   this.notesRenderer.clearContainer();
+  //   this.grayedNotesRenderer.clearContainer();
+  //   this.playheadRenderer.clearContainer();
+  //   this.loopRenderer.clearContainer();
+  //   this.viewportRenderer.clearContainer();
+  //   this.pianoKeyboardRenderer.clearContainer();
+  //   logger.info("Clear all", Date.now() - now);
+  // }
 
   protected onTickUpdate() {
     if (!this.hasInitialized || !this.app.renderer) return;
@@ -262,6 +271,9 @@ export abstract class PianoRollEngine {
     if (this.eventsDirtyFlags.has(Event.Cursor)) {
       this.cursorRenderer.draw();
     }
+    if (this.eventsDirtyFlags.has(Event.Resize)) {
+      this.handleResize();
+    }
   }
 
   protected handleResize() {
@@ -294,6 +306,7 @@ export abstract class PianoRollEngine {
       const canvas = this.app.canvas;
       if (canvas?.parentNode) {
         try {
+          this._resizeObserver.disconnect();
           canvas.parentNode.removeChild(canvas);
         } catch (error) {
           logger.warn("Could not remove canvas from DOM", error);
@@ -324,8 +337,8 @@ export class PlayerEngine extends PianoRollEngine {
   }
 
   protected override attachListeners(): void {
-    this.app.renderer.on("resize", (width, height) => {
-      this.handleResize();
+    this.app.renderer.on("resize", () => {
+      this.eventsDirtyFlags.add(Event.Resize);
     });
 
     this.pointerHandler = new PointerActionHandler(

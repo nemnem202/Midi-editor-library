@@ -4,4 +4,5 @@ export enum Event {
   NotesDrag,
   Playhead,
   Cursor,
+  Resize,
 }
