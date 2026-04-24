@@ -51,12 +51,12 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   public draw(): void {
     const start = Date.now();
     const { width, height } = this.deps.app.screen;
-    const { pianoKeyboardSize } = this.deps.engine;
+    const { pianoKeyboardSize, colors } = this.deps.engine;
     this.bgGraphics
       .clear()
       .rect(0, height - pianoKeyboardSize, width, pianoKeyboardSize)
-      .fill("#ffffff")
-      .stroke({ color: "#000000", pixelLine: true });
+      .fill(colors.foreground)
+      .stroke({ color: colors.background, pixelLine: true });
 
     while (this.keysContainer.children[0]) {
       this.keysContainer.children[0].destroy({ children: true });
@@ -69,7 +69,7 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
 
   protected drawKeys(keywidth: number): void {
     const { height } = this.deps.app.screen;
-    const { pianoKeyboardSize } = this.deps.engine;
+    const { pianoKeyboardSize, colors } = this.deps.engine;
     const whiteKey = new Graphics({ label: "White key" });
     this.keysContainer.addChild(whiteKey);
 
@@ -84,18 +84,18 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
         texture: Texture.WHITE,
         alpha: 1,
       });
-      blackKey.tint = 0x00000;
+      blackKey.tint = colors.background;
       this.keysContainer.addChild(blackKey);
     }
 
-    whiteKey.stroke({ color: "#000000", pixelLine: true });
+    whiteKey.stroke({ color: colors.background, pixelLine: true });
   }
 }
 
 export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   protected init(): void {
     const { height } = this.deps.app.screen;
-    const { pianoKeyboardSize } = this.deps.engine;
+    const { pianoKeyboardSize, colors } = this.deps.engine;
     this.container = new Container({
       label: "Keyboard",
       width: pianoKeyboardSize,
@@ -105,8 +105,8 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
 
     const bg = new Graphics({ x: 0, y: 0, width: pianoKeyboardSize, height })
       .rect(0, 0, pianoKeyboardSize, height)
-      .fill("#ffffff")
-      .stroke({ color: "#000000", pixelLine: true });
+      .fill(colors.foreground)
+      .stroke({ color: colors.background, pixelLine: true });
 
     this.container.addChild(bg);
     this.container.addChild(this.keysContainer);
@@ -128,7 +128,7 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   protected drawKeys(keyHeight: number): void {
     const whiteKey = new Graphics({ label: "White key" });
     this.keysContainer.addChild(whiteKey);
-    const { pianoKeyboardSize } = this.deps.engine;
+    const { pianoKeyboardSize, colors } = this.deps.engine;
     for (let i = 0; i < 75; i++) {
       whiteKey.moveTo(0, i * keyHeight).lineTo(pianoKeyboardSize, i * keyHeight);
       if ([2, 6].includes(i % 7)) continue;
@@ -140,10 +140,10 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
         texture: Texture.WHITE,
         alpha: 1,
       });
-      blackKey.tint = 0x00000;
+      blackKey.tint = colors.background;
       this.container.addChild(blackKey);
     }
 
-    whiteKey.stroke({ color: "#000000", pixelLine: true });
+    whiteKey.stroke({ color: colors.background, pixelLine: true });
   }
 }

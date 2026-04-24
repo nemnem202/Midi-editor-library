@@ -48,7 +48,7 @@ function Content() {
         primary: getVar("--primary"),
         secondary: getVar("--secondary"),
         foreground: getVar("--foreground"),
-        foregroundMuted: getVar("--muted-foreground"),
+        muted: getVar("--border"),
         background: getVar("--background"),
         popover: getVar("--popover"),
       },

@@ -17,6 +17,6 @@ export type PianoRollConfig = {
     background: string;
     popover: string;
     foreground: string;
-    foregroundMuted: string;
+    muted: string;
   };
 };

@@ -16,7 +16,7 @@ export class PlayerBackgroundRenderer extends BackgroundRenderer {
   public draw(): void {
     const start = Date.now();
     this.clearContainer();
-    const { pianoKeyboardSize } = this.deps.engine;
+    const { pianoKeyboardSize, colors } = this.deps.engine;
     const { height, width } = this.deps.app.screen;
     const rowWidth = width / 128.5;
     for (let i = 0; i <= 128.5; i++) {
@@ -29,7 +29,7 @@ export class PlayerBackgroundRenderer extends BackgroundRenderer {
         width: rowWidth,
         texture: Texture.WHITE,
       });
-      line.tint = 0x292929;
+      line.tint = colors.popover;
       this.container.addChild(line);
     }
     logger.draw("Background", Date.now() - start);
@@ -41,7 +41,7 @@ export class EditorBackgroundRenderer extends BackgroundRenderer {
     const start = Date.now();
     this.clearContainer();
     const { height, width } = this.deps.app.screen;
-    const { pianoKeyboardSize } = this.deps.engine;
+    const { pianoKeyboardSize, colors } = this.deps.engine;
     const rowHeight = height / 128;
     for (let i = 0; i <= 128; i++) {
       if ([1, 3, 6, 8, 10].includes(i % 12)) continue;
@@ -53,7 +53,7 @@ export class EditorBackgroundRenderer extends BackgroundRenderer {
         height: rowHeight,
         texture: Texture.WHITE,
       });
-      line.tint = 0x292929;
+      line.tint = colors.popover;
       this.container.addChild(line);
     }
     logger.draw("Background", Date.now() - start);
