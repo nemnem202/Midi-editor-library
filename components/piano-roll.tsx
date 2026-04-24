@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { EditorEngine, type PianoRollEngine, PlayerEngine } from "../engines/piano-roll-engine";
 import { useMidiStore } from "../stores/use-midi-store";
 import { useShortcuts } from "../hooks/useShortcuts";
+import type { PianoRollConfig } from "../types/general";
 
 export default function PianoRoll() {
   const state = useMidiStore((s) => s.state);
@@ -36,9 +37,24 @@ function Content() {
   useEffect(() => {
     if (!rootDiv.current) return;
 
-    const engine = playerStrategy
-      ? new PlayerEngine(rootDiv.current)
-      : new EditorEngine(rootDiv.current);
+    const rootStyle = getComputedStyle(document.documentElement);
+    const getVar = (name: string) => rootStyle.getPropertyValue(name).trim();
+
+    const config: PianoRollConfig = {
+      root_div: rootDiv.current,
+      pianoKeyboardSize: 100,
+      strategy: "Player",
+      colors: {
+        primary: getVar("--primary"),
+        secondary: getVar("--secondary"),
+        foreground: getVar("--foreground"),
+        foregroundMuted: getVar("--muted-foreground"),
+        background: getVar("--background"),
+        popover: getVar("--popover"),
+      },
+    };
+
+    const engine = playerStrategy ? new PlayerEngine(config) : new EditorEngine(config);
 
     engineRef.current = engine;
     engine.init();

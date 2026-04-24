@@ -1,6 +1,5 @@
 import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
-import { PIANO_KEYBOARD_SIZE } from "../config/layout";
 import { logger } from "../lib/logger";
 
 export interface PianoKeyboardRendererDeps extends RendererDeps {}
@@ -21,21 +20,21 @@ export default abstract class PianoKeyboardRenderer extends Renderer<PianoKeyboa
 export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   protected init(): void {
     const { width, height } = this.deps.app.screen;
-
+    const { pianoKeyboardSize } = this.deps.engine;
     this.container = new Container({
       label: "Keyboard",
       width: width,
-      height: PIANO_KEYBOARD_SIZE,
+      height: pianoKeyboardSize,
       eventMode: "dynamic",
     });
 
     const bg = new Graphics({
       x: 0,
-      y: height - PIANO_KEYBOARD_SIZE,
+      y: height - pianoKeyboardSize,
       width: width,
-      height: PIANO_KEYBOARD_SIZE,
+      height: pianoKeyboardSize,
     })
-      .rect(0, 0, width, PIANO_KEYBOARD_SIZE)
+      .rect(0, 0, width, pianoKeyboardSize)
       .fill("#ffffff")
       .stroke({ color: "#000000", pixelLine: true });
 
@@ -56,17 +55,18 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
 
   protected drawKeys(keywidth: number): void {
     const { height } = this.deps.app.screen;
+    const { pianoKeyboardSize } = this.deps.engine;
     const whiteKey = new Graphics({ label: "White key" });
     this.container.addChild(whiteKey);
 
     for (let i = 0; i < 75; i++) {
-      whiteKey.moveTo(i * keywidth, height - PIANO_KEYBOARD_SIZE).lineTo(i * keywidth, height);
+      whiteKey.moveTo(i * keywidth, height - pianoKeyboardSize).lineTo(i * keywidth, height);
       if ([2, 6].includes(i % 7)) continue;
       const blackKey = new Sprite({
         x: i * keywidth + keywidth * 0.75,
-        y: height - PIANO_KEYBOARD_SIZE,
+        y: height - pianoKeyboardSize,
         width: keywidth / 2,
-        height: (PIANO_KEYBOARD_SIZE * 2) / 3,
+        height: (pianoKeyboardSize * 2) / 3,
         texture: Texture.WHITE,
         alpha: 1,
       });
@@ -81,16 +81,16 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
 export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   protected init(): void {
     const { height } = this.deps.app.screen;
-
+    const { pianoKeyboardSize } = this.deps.engine;
     this.container = new Container({
       label: "Keyboard",
-      width: PIANO_KEYBOARD_SIZE,
+      width: pianoKeyboardSize,
       height: height,
       eventMode: "dynamic",
     });
 
-    const bg = new Graphics({ x: 0, y: 0, width: PIANO_KEYBOARD_SIZE, height })
-      .rect(0, 0, PIANO_KEYBOARD_SIZE, height)
+    const bg = new Graphics({ x: 0, y: 0, width: pianoKeyboardSize, height })
+      .rect(0, 0, pianoKeyboardSize, height)
       .fill("#ffffff")
       .stroke({ color: "#000000", pixelLine: true });
 
@@ -112,14 +112,14 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   protected drawKeys(keyHeight: number): void {
     const whiteKey = new Graphics({ label: "White key" });
     this.container.addChild(whiteKey);
-
+    const { pianoKeyboardSize } = this.deps.engine;
     for (let i = 0; i < 75; i++) {
-      whiteKey.moveTo(0, i * keyHeight).lineTo(PIANO_KEYBOARD_SIZE, i * keyHeight);
+      whiteKey.moveTo(0, i * keyHeight).lineTo(pianoKeyboardSize, i * keyHeight);
       if ([2, 6].includes(i % 7)) continue;
       const blackKey = new Sprite({
         x: 0,
         y: (75 - i) * keyHeight - keyHeight * 1.25,
-        width: (PIANO_KEYBOARD_SIZE * 2) / 3,
+        width: (pianoKeyboardSize * 2) / 3,
         height: keyHeight / 2,
         texture: Texture.WHITE,
         alpha: 1,

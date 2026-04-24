@@ -1,6 +1,5 @@
-import { Container, FederatedPointerEvent, FederatedWheelEvent } from "pixi.js";
+import { Container, type FederatedPointerEvent, type FederatedWheelEvent } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
-import { PIANO_KEYBOARD_SIZE } from "../config/layout";
 import { ZOOM_FACTOR } from "../config/viewport";
 import type PianoKeyboardRenderer from "./piano-keyboard-renderer";
 import type BackgroundRenderer from "./background-renderer";
@@ -10,269 +9,253 @@ import { logger } from "../lib/logger";
 import type GridRenderer from "./grid-renderer";
 
 export interface ViewportRendererDeps extends RendererDeps {
-	pianoKeyboardRenderer: PianoKeyboardRenderer;
-	backgroundRenderer: BackgroundRenderer;
-	notesRenderer: NotesRenderer;
-	eventsDirtyFlags: Set<Event>;
-	gridRenderer: GridRenderer;
+  pianoKeyboardRenderer: PianoKeyboardRenderer;
+  backgroundRenderer: BackgroundRenderer;
+  notesRenderer: NotesRenderer;
+  eventsDirtyFlags: Set<Event>;
+  gridRenderer: GridRenderer;
 }
 
 export default abstract class ViewportRenderer extends Renderer<ViewportRendererDeps> {
-	protected pendingDx = 0;
-	protected pendingDy = 0;
-	protected pendingZoomDeltaY: number | null = null;
-	protected pendingZoomCtrlKey = false;
-	protected pendingZoomGlobalX = 0;
-	protected pendingZoomGlobalY = 0;
-	protected pendingCenterTick: number | null = null;
+  protected pendingDx = 0;
+  protected pendingDy = 0;
+  protected pendingZoomDeltaY: number | null = null;
+  protected pendingZoomCtrlKey = false;
+  protected pendingZoomGlobalX = 0;
+  protected pendingZoomGlobalY = 0;
+  protected pendingCenterTick: number | null = null;
 
-	constructor(deps: ViewportRendererDeps) {
-		super(deps);
-	}
+  public abstract draw(): void;
 
-	public abstract draw(): void;
+  public handleZoom(e: FederatedWheelEvent) {
+    this.pendingZoomDeltaY = e.deltaY;
+    this.pendingZoomCtrlKey = e.ctrlKey;
+    this.pendingZoomGlobalX = e.globalX;
+    this.pendingZoomGlobalY = e.globalY;
+    this.deps.eventsDirtyFlags.add(Event.Viewport);
+  }
 
-	public handleZoom(e: FederatedWheelEvent) {
-		this.pendingZoomDeltaY = e.deltaY;
-		this.pendingZoomCtrlKey = e.ctrlKey;
-		this.pendingZoomGlobalX = e.globalX;
-		this.pendingZoomGlobalY = e.globalY;
-		this.deps.eventsDirtyFlags.add(Event.Viewport);
-	}
+  public tryPan(e: FederatedPointerEvent, lastPos: { x: number; y: number }) {
+    this.pendingDx += e.global.x - lastPos.x;
+    this.pendingDy += e.global.y - lastPos.y;
+    this.deps.eventsDirtyFlags.add(Event.Viewport);
+  }
 
-	public tryPan(e: FederatedPointerEvent, lastPos: { x: number; y: number }) {
-		this.pendingDx += e.global.x - lastPos.x;
-		this.pendingDy += e.global.y - lastPos.y;
-		this.deps.eventsDirtyFlags.add(Event.Viewport);
-	}
+  public centerOnTick(tick: number) {
+    this.pendingCenterTick = tick;
+    this.deps.eventsDirtyFlags.add(Event.Viewport);
+  }
 
-	public centerOnTick(tick: number) {
-		this.pendingCenterTick = tick;
-		this.deps.eventsDirtyFlags.add(Event.Viewport);
-	}
+  public abstract scrollToTick(tick: number): void;
 
-	public abstract scrollToTick(tick: number): void;
-
-	protected abstract constrain(): void;
+  protected abstract constrain(): void;
 }
 
 export class EditorViewportRenderer extends ViewportRenderer {
-	constructor(deps: ViewportRendererDeps) {
-		super(deps);
+  constructor(deps: ViewportRendererDeps) {
+    super(deps);
+    const { pianoKeyboardSize } = this.deps.engine;
+    this.container = new Container({
+      label: "Viewport",
+      x: pianoKeyboardSize,
+      y: 0,
+    });
+  }
 
-		this.container = new Container({
-			label: "Viewport",
-			x: PIANO_KEYBOARD_SIZE,
-			y: 0,
-		});
-	}
+  protected constrain(): void {
+    const { app } = this.deps;
+    const { width, height } = app.screen;
+    const { pianoKeyboardSize } = this.deps.engine;
+    const contentWidth = this.state.transport.totalDuration * this.container.scale.x;
+    const minX = width - contentWidth;
+    this.container.x = Math.max(this.container.x, minX);
+    this.container.x = Math.min(this.container.x, pianoKeyboardSize);
 
-	protected constrain(): void {
-		const { app } = this.deps;
-		const { width, height } = app.screen;
+    const contentHeight = height * this.container.scale.y;
+    const minY = height - contentHeight;
+    this.container.y = Math.max(this.container.y, minY);
+    this.container.y = Math.min(this.container.y, 0);
+  }
 
-		const contentWidth =
-			this.state.transport.totalDuration * this.container.scale.x;
-		const minX = width - contentWidth;
-		this.container.x = Math.max(this.container.x, minX);
-		this.container.x = Math.min(this.container.x, PIANO_KEYBOARD_SIZE);
+  public draw(): void {
+    const start = Date.now();
+    const { pianoKeyboardSize } = this.deps.engine;
+    if (this.pendingZoomDeltaY !== null) {
+      const { width } = this.deps.app.screen;
+      const { transport } = this.state;
+      const availableWidth = width - pianoKeyboardSize;
 
-		const contentHeight = height * this.container.scale.y;
-		const minY = height - contentHeight;
-		this.container.y = Math.max(this.container.y, minY);
-		this.container.y = Math.min(this.container.y, 0);
-	}
+      const worldPointerPos = {
+        x: this.pendingZoomGlobalX,
+        y: this.pendingZoomGlobalY,
+      };
+      const localPointerPos = this.container.toLocal(worldPointerPos);
 
-	public draw(): void {
-		const start = Date.now();
-		if (this.pendingZoomDeltaY !== null) {
-			const { width } = this.deps.app.screen;
-			const { transport } = this.state;
-			const availableWidth = width - PIANO_KEYBOARD_SIZE;
+      const isZoomIn = this.pendingZoomDeltaY < 0;
+      const factor = isZoomIn ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
 
-			const worldPointerPos = {
-				x: this.pendingZoomGlobalX,
-				y: this.pendingZoomGlobalY,
-			};
-			const localPointerPos = this.container.toLocal(worldPointerPos);
+      if (this.pendingZoomCtrlKey) {
+        const minScaleY = 1;
+        this.container.scale.y = Math.max(this.container.scale.y * factor, minScaleY);
+      } else {
+        const minScaleX = availableWidth / transport.totalDuration;
+        this.container.scale.x = Math.max(this.container.scale.x * factor, minScaleX);
+      }
 
-			const isZoomIn = this.pendingZoomDeltaY < 0;
-			const factor = isZoomIn ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+      const newWorldPointerPosition = this.container.toGlobal(localPointerPos);
+      this.container.x -= newWorldPointerPosition.x - worldPointerPos.x;
+      this.container.y -= newWorldPointerPosition.y - worldPointerPos.y;
 
-			if (this.pendingZoomCtrlKey) {
-				const minScaleY = 1;
-				this.container.scale.y = Math.max(
-					this.container.scale.y * factor,
-					minScaleY,
-				);
-			} else {
-				const minScaleX = availableWidth / transport.totalDuration;
-				this.container.scale.x = Math.max(
-					this.container.scale.x * factor,
-					minScaleX,
-				);
-			}
+      if (!this.pendingZoomCtrlKey) this.deps.gridRenderer.draw();
 
-			const newWorldPointerPosition = this.container.toGlobal(localPointerPos);
-			this.container.x -= newWorldPointerPosition.x - worldPointerPos.x;
-			this.container.y -= newWorldPointerPosition.y - worldPointerPos.y;
+      this.pendingZoomDeltaY = null;
+      this.pendingZoomCtrlKey = false;
+    }
 
-			if (!this.pendingZoomCtrlKey) this.deps.gridRenderer.draw();
+    if (this.pendingDx !== 0 || this.pendingDy !== 0) {
+      this.container.x += this.pendingDx;
+      this.container.y += this.pendingDy;
+      this.pendingDx = 0;
+      this.pendingDy = 0;
 
-			this.pendingZoomDeltaY = null;
-			this.pendingZoomCtrlKey = false;
-		}
+      if (!this.pendingZoomCtrlKey) this.deps.gridRenderer.draw();
+    }
 
-		if (this.pendingDx !== 0 || this.pendingDy !== 0) {
-			this.container.x += this.pendingDx;
-			this.container.y += this.pendingDy;
-			this.pendingDx = 0;
-			this.pendingDy = 0;
+    if (this.pendingCenterTick !== null) {
+      const { width } = this.deps.app.screen;
+      const targetX =
+        pianoKeyboardSize + width / 2 - this.pendingCenterTick * this.container.scale.x;
+      this.container.x = targetX;
+      this.pendingCenterTick = null;
+    }
 
-			if (!this.pendingZoomCtrlKey) this.deps.gridRenderer.draw();
-		}
+    this.constrain();
 
-		if (this.pendingCenterTick !== null) {
-			const { width } = this.deps.app.screen;
-			const targetX =
-				PIANO_KEYBOARD_SIZE +
-				width / 2 -
-				this.pendingCenterTick * this.container.scale.x;
-			this.container.x = targetX;
-			this.pendingCenterTick = null;
-		}
+    const keyboard = this.deps.pianoKeyboardRenderer.container;
+    const background = this.deps.backgroundRenderer.container;
+    keyboard.y = background.y = this.container.y;
+    keyboard.scale.y = background.scale.y = this.container.scale.y;
+    keyboard.x = 0;
 
-		this.constrain();
+    logger.draw("Viewport", Date.now() - start);
+  }
 
-		const keyboard = this.deps.pianoKeyboardRenderer.container;
-		const background = this.deps.backgroundRenderer.container;
-		keyboard.y = background.y = this.container.y;
-		keyboard.scale.y = background.scale.y = this.container.scale.y;
-		keyboard.x = 0;
-
-		logger.draw("Viewport", Date.now() - start);
-	}
-
-	public scrollToTick(): void {}
+  public scrollToTick(): void {}
 }
 
 export class PlayerViewportRenderer extends ViewportRenderer {
-	constructor(deps: ViewportRendererDeps) {
-		super(deps);
-		this.container = new Container({
-			label: "Viewport",
-			x: 0,
-			y: -this.state.transport.totalDuration,
-		});
-	}
+  constructor(deps: ViewportRendererDeps) {
+    super(deps);
+    this.container = new Container({
+      label: "Viewport",
+      x: 0,
+      y: -this.state.transport.totalDuration,
+    });
+  }
 
-	protected constrain(): void {
-		const { app } = this.deps;
-		const { width, height } = app.screen;
-		const scaleY = this.container.scale.y;
-		const scaleX = this.container.scale.x;
+  protected constrain(): void {
+    const { app } = this.deps;
+    const { width, height } = app.screen;
+    const { pianoKeyboardSize } = this.deps.engine;
+    const scaleY = this.container.scale.y;
+    const scaleX = this.container.scale.x;
 
-		const visibleHeight = height - PIANO_KEYBOARD_SIZE;
-		const contentHeight = this.state.transport.totalDuration * scaleY;
+    const visibleHeight = height - pianoKeyboardSize;
+    const contentHeight = this.state.transport.totalDuration * scaleY;
 
-		const minY = visibleHeight - contentHeight;
+    const minY = visibleHeight - contentHeight;
 
-		const maxY = height - PIANO_KEYBOARD_SIZE;
+    const maxY = height - pianoKeyboardSize;
 
-		this.container.y = Math.max(this.container.y, minY);
-		this.container.y = Math.min(this.container.y, maxY);
+    this.container.y = Math.max(this.container.y, minY);
+    this.container.y = Math.min(this.container.y, maxY);
 
-		const contentWidth = width * scaleX;
-		const minX = width - contentWidth;
-		this.container.x = Math.max(this.container.x, minX);
-		this.container.x = Math.min(this.container.x, 0);
-	}
+    const contentWidth = width * scaleX;
+    const minX = width - contentWidth;
+    this.container.x = Math.max(this.container.x, minX);
+    this.container.x = Math.min(this.container.x, 0);
+  }
 
-	public draw(): void {
-		const start = Date.now();
-		let needsGridUpdate = false;
+  public draw(): void {
+    const start = Date.now();
+    let needsGridUpdate = false;
+    const { pianoKeyboardSize } = this.deps.engine;
+    if (this.pendingZoomDeltaY !== null) {
+      const { height } = this.deps.app.screen;
+      const { transport } = this.state;
+      const availableHeight = height - pianoKeyboardSize;
 
-		if (this.pendingZoomDeltaY !== null) {
-			const { height } = this.deps.app.screen;
-			const { transport } = this.state;
-			const availableHeight = height - PIANO_KEYBOARD_SIZE;
+      const worldPointerPos = {
+        x: this.pendingZoomGlobalX,
+        y: this.pendingZoomGlobalY,
+      };
+      const localPointerPos = this.container.toLocal(worldPointerPos);
 
-			const worldPointerPos = {
-				x: this.pendingZoomGlobalX,
-				y: this.pendingZoomGlobalY,
-			};
-			const localPointerPos = this.container.toLocal(worldPointerPos);
+      const isZoomIn = this.pendingZoomDeltaY < 0;
+      const factor = isZoomIn ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
 
-			const isZoomIn = this.pendingZoomDeltaY < 0;
-			const factor = isZoomIn ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+      if (this.pendingZoomCtrlKey) {
+        const minScaleX = 1;
+        this.container.scale.x = Math.max(this.container.scale.x * factor, minScaleX);
+      } else {
+        const minScaleY = availableHeight / transport.totalDuration;
+        this.container.scale.y = Math.max(this.container.scale.y * factor, minScaleY);
+        needsGridUpdate = true;
+      }
 
-			if (this.pendingZoomCtrlKey) {
-				const minScaleX = 1;
-				this.container.scale.x = Math.max(
-					this.container.scale.x * factor,
-					minScaleX,
-				);
-			} else {
-				const minScaleY = availableHeight / transport.totalDuration;
-				this.container.scale.y = Math.max(
-					this.container.scale.y * factor,
-					minScaleY,
-				);
-				needsGridUpdate = true;
-			}
+      const newWorldPointerPosition = this.container.toGlobal(localPointerPos);
+      this.container.x -= newWorldPointerPosition.x - worldPointerPos.x;
+      this.container.y -= newWorldPointerPosition.y - worldPointerPos.y;
 
-			const newWorldPointerPosition = this.container.toGlobal(localPointerPos);
-			this.container.x -= newWorldPointerPosition.x - worldPointerPos.x;
-			this.container.y -= newWorldPointerPosition.y - worldPointerPos.y;
+      this.pendingZoomDeltaY = null;
+    }
 
-			this.pendingZoomDeltaY = null;
-		}
+    if (this.pendingDx !== 0 || this.pendingDy !== 0) {
+      this.container.x += this.pendingDx;
+      this.container.y += this.pendingDy;
+      this.pendingDx = 0;
+      this.pendingDy = 0;
+      needsGridUpdate = true;
+    }
 
-		if (this.pendingDx !== 0 || this.pendingDy !== 0) {
-			this.container.x += this.pendingDx;
-			this.container.y += this.pendingDy;
-			this.pendingDx = 0;
-			this.pendingDy = 0;
-			needsGridUpdate = true;
-		}
+    if (this.pendingCenterTick !== null) {
+      const { height } = this.deps.app.screen;
+      const targetY =
+        pianoKeyboardSize +
+        (height - pianoKeyboardSize) / 2 -
+        this.pendingCenterTick * this.container.scale.y;
+      this.container.y = targetY;
+      this.pendingCenterTick = null;
+      needsGridUpdate = true;
+    }
 
-		if (this.pendingCenterTick !== null) {
-			const { height } = this.deps.app.screen;
-			const targetY =
-				PIANO_KEYBOARD_SIZE +
-				(height - PIANO_KEYBOARD_SIZE) / 2 -
-				this.pendingCenterTick * this.container.scale.y;
-			this.container.y = targetY;
-			this.pendingCenterTick = null;
-			needsGridUpdate = true;
-		}
+    this.constrain();
 
-		this.constrain();
+    if (needsGridUpdate) {
+      this.deps.gridRenderer.draw();
+    }
 
-		if (needsGridUpdate) {
-			this.deps.gridRenderer.draw();
-		}
+    const keyboard = this.deps.pianoKeyboardRenderer.container;
+    const background = this.deps.backgroundRenderer.container;
 
-		const keyboard = this.deps.pianoKeyboardRenderer.container;
-		const background = this.deps.backgroundRenderer.container;
+    keyboard.x = background.x = this.container.x;
+    keyboard.scale.x = background.scale.x = this.container.scale.x;
+    keyboard.y = 0;
 
-		keyboard.x = background.x = this.container.x;
-		keyboard.scale.x = background.scale.x = this.container.scale.x;
-		keyboard.y = 0;
+    logger.draw("Viewport", Date.now() - start);
+  }
 
-		logger.draw("Viewport", Date.now() - start);
-	}
+  public scrollToTick(tick: number): void {
+    const { totalDuration } = this.state.transport;
+    const { height } = this.deps.app.screen;
+    const { pianoKeyboardSize } = this.deps.engine;
+    const scaleY = this.container.scale.y;
 
-	public scrollToTick(tick: number): void {
-		const { totalDuration } = this.state.transport;
-		const { height } = this.deps.app.screen;
-		const scaleY = this.container.scale.y;
+    const localY = totalDuration - tick;
+    const targetWorldY = height - pianoKeyboardSize;
 
-		const localY = totalDuration - tick;
-		const targetWorldY = height - PIANO_KEYBOARD_SIZE;
-
-		this.container.y = targetWorldY - localY * scaleY;
-		this.constrain();
-		this.deps.eventsDirtyFlags.add(Event.Viewport);
-	}
+    this.container.y = targetWorldY - localY * scaleY;
+    this.constrain();
+    this.deps.eventsDirtyFlags.add(Event.Viewport);
+  }
 }

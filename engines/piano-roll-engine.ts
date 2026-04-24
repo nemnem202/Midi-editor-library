@@ -42,11 +42,13 @@ import {
   PlayerGrayedNotesRenderer,
 } from "../renderers/grayed-notes-renderer";
 import { logger } from "@/lib/logger";
+import type { PianoRollConfig } from "../types/general";
 
 export type Strategy = "Player" | "Midi";
 
 export abstract class PianoRollEngine {
   protected app = new Application();
+  protected root_div: HTMLDivElement;
   protected actionsDirtyFlags = new Set<Action>();
   protected eventsDirtyFlags = new Set<Event>();
   protected hasInitialized = false;
@@ -73,10 +75,18 @@ export abstract class PianoRollEngine {
 
   protected soundEngine!: SoundEngine;
 
-  constructor(
-    protected root_div: HTMLDivElement,
-    public strategy: Strategy
-  ) {
+  public pianoKeyboardSize: number;
+
+  public colors: PianoRollConfig["colors"];
+
+  public strategy: Strategy;
+
+  constructor({ ...props }: PianoRollConfig) {
+    this.root_div = props.root_div;
+    this.pianoKeyboardSize = props.pianoKeyboardSize;
+    this.colors = props.colors;
+    this.strategy = props.strategy;
+
     this.state = useMidiStore.getState().state;
 
     useMidiStore.subscribe((store) => {
@@ -296,8 +306,8 @@ export abstract class PianoRollEngine {
 }
 
 export class PlayerEngine extends PianoRollEngine {
-  constructor(root_div: HTMLDivElement) {
-    super(root_div, "Player");
+  constructor({ ...props }: Omit<PianoRollConfig, "strategy">) {
+    super({ ...props, strategy: "Player" });
   }
 
   protected override attachListeners(): void {
@@ -431,8 +441,8 @@ export class PlayerEngine extends PianoRollEngine {
 }
 
 export class EditorEngine extends PianoRollEngine {
-  constructor(root_div: HTMLDivElement) {
-    super(root_div, "Midi");
+  constructor({ ...props }: Omit<PianoRollConfig, "strategy">) {
+    super({ ...props, strategy: "Midi" });
   }
 
   protected override attachListeners(): void {

@@ -1,1 +1,1 @@
-export const PIANO_KEYBOARD_SIZE = 200;
+// export const PIANO_KEYBOARD_SIZE = 200;
