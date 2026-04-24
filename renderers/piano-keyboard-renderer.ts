@@ -5,6 +5,8 @@ import { logger } from "../lib/logger";
 export interface PianoKeyboardRendererDeps extends RendererDeps {}
 
 export default abstract class PianoKeyboardRenderer extends Renderer<PianoKeyboardRendererDeps> {
+  protected keysContainer = new Container({ label: "Keys" });
+  protected bgGraphics = new Graphics({ label: "Piano keyboard bg" });
   constructor(deps: PianoKeyboardRendererDeps) {
     super(deps);
     this.init();
@@ -19,7 +21,7 @@ export default abstract class PianoKeyboardRenderer extends Renderer<PianoKeyboa
 
 export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   protected init(): void {
-    const { width, height } = this.deps.app.screen;
+    const { width } = this.deps.app.screen;
     const { pianoKeyboardSize } = this.deps.engine;
     this.container = new Container({
       label: "Keyboard",
@@ -28,28 +30,40 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
       eventMode: "dynamic",
     });
 
-    const bg = new Graphics({
-      x: 0,
-      y: height - pianoKeyboardSize,
-      width: width,
-      height: pianoKeyboardSize,
-    })
-      .rect(0, 0, width, pianoKeyboardSize)
-      .fill("#ffffff")
-      .stroke({ color: "#000000", pixelLine: true });
+    // const bg = new Graphics({
+    //   x: 0,
+    //   y: height - pianoKeyboardSize,
+    //   width: width,
+    //   height: pianoKeyboardSize,
+    // })
+    // this.bgGraphics
+    //   .rect(0, 0, width, pianoKeyboardSize)
+    //   .fill("#ffffff")
+    //   .stroke({ color: "#000000", pixelLine: true });
 
-    this.container.addChild(bg);
+    // this.container.addChild(bg);
+    // this.container.addChild(this.keysContainer);
+    this.container.addChild(this.bgGraphics);
+    this.container.addChild(this.keysContainer);
+    this.container.eventMode = "dynamic";
   }
 
   public draw(): void {
     const start = Date.now();
+    const { width, height } = this.deps.app.screen;
+    const { pianoKeyboardSize } = this.deps.engine;
+    this.bgGraphics
+      .clear()
+      .rect(0, height - pianoKeyboardSize, width, pianoKeyboardSize)
+      .fill("#ffffff")
+      .stroke({ color: "#000000", pixelLine: true });
 
-    const { width } = this.deps.app.screen;
+    while (this.keysContainer.children[0]) {
+      this.keysContainer.children[0].destroy({ children: true });
+    }
 
     const keywidth = width / 75;
-
     this.drawKeys(keywidth);
-
     logger.draw("Piano", Date.now() - start);
   }
 
@@ -57,7 +71,7 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     const { height } = this.deps.app.screen;
     const { pianoKeyboardSize } = this.deps.engine;
     const whiteKey = new Graphics({ label: "White key" });
-    this.container.addChild(whiteKey);
+    this.keysContainer.addChild(whiteKey);
 
     for (let i = 0; i < 75; i++) {
       whiteKey.moveTo(i * keywidth, height - pianoKeyboardSize).lineTo(i * keywidth, height);
@@ -71,7 +85,7 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
         alpha: 1,
       });
       blackKey.tint = 0x00000;
-      this.container.addChild(blackKey);
+      this.keysContainer.addChild(blackKey);
     }
 
     whiteKey.stroke({ color: "#000000", pixelLine: true });
@@ -95,13 +109,15 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
       .stroke({ color: "#000000", pixelLine: true });
 
     this.container.addChild(bg);
+    this.container.addChild(this.keysContainer);
   }
 
   public draw(): void {
     const start = Date.now();
-
     const { height } = this.deps.app.screen;
-
+    while (this.keysContainer.children[0]) {
+      this.container.children[0].destroy();
+    }
     const keyHeight = height / 75;
 
     this.drawKeys(keyHeight);
@@ -111,7 +127,7 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
 
   protected drawKeys(keyHeight: number): void {
     const whiteKey = new Graphics({ label: "White key" });
-    this.container.addChild(whiteKey);
+    this.keysContainer.addChild(whiteKey);
     const { pianoKeyboardSize } = this.deps.engine;
     for (let i = 0; i < 75; i++) {
       whiteKey.moveTo(0, i * keyHeight).lineTo(pianoKeyboardSize, i * keyHeight);

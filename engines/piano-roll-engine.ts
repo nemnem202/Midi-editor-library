@@ -171,6 +171,19 @@ export abstract class PianoRollEngine {
     logger.info("Draw all", Date.now() - now);
   }
 
+  protected clearAll() {
+    const now = Date.now();
+    this.gridRenderer.clearContainer();
+    this.backgroundRenderer.clearContainer();
+    this.notesRenderer.clearContainer();
+    this.grayedNotesRenderer.clearContainer();
+    this.playheadRenderer.clearContainer();
+    this.loopRenderer.clearContainer();
+    this.viewportRenderer.clearContainer();
+    this.pianoKeyboardRenderer.clearContainer();
+    logger.info("Clear all", Date.now() - now);
+  }
+
   protected onTickUpdate() {
     if (!this.hasInitialized || !this.app.renderer) return;
 

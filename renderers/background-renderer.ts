@@ -15,6 +15,7 @@ export default abstract class BackgroundRenderer extends Renderer<BackgroundRend
 export class PlayerBackgroundRenderer extends BackgroundRenderer {
   public draw(): void {
     const start = Date.now();
+    this.clearContainer();
     const { pianoKeyboardSize } = this.deps.engine;
     const { height, width } = this.deps.app.screen;
     const rowWidth = width / 128.5;
@@ -38,6 +39,7 @@ export class PlayerBackgroundRenderer extends BackgroundRenderer {
 export class EditorBackgroundRenderer extends BackgroundRenderer {
   public draw(): void {
     const start = Date.now();
+    this.clearContainer();
     const { height, width } = this.deps.app.screen;
     const { pianoKeyboardSize } = this.deps.engine;
     const rowHeight = height / 128;
