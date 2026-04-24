@@ -244,6 +244,8 @@ export abstract class PianoRollEngine {
     if (actions.has(Action.TOGGLE_PLAY)) {
       if (!this.state.config.isPlaying) {
         this.playheadRenderer.hidePlayhead();
+        logger.info("Stop");
+        this.pianoKeyboardRenderer.draw();
       }
     }
   }
