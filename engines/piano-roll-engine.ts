@@ -252,9 +252,9 @@ export abstract class PianoRollEngine {
   }
 
   protected handleResize() {
-    logger.info("Resize");
-    this.backgroundRenderer.draw();
-    this.gridRenderer.draw();
+    if (!this.hasInitialized) return;
+    this.viewportRenderer.draw();
+    this.drawAll();
   }
 
   protected abstract attachListeners(): void;
@@ -312,11 +312,7 @@ export class PlayerEngine extends PianoRollEngine {
 
   protected override attachListeners(): void {
     this.app.renderer.on("resize", (width, height) => {
-      if (this.lastRenderWidth < width || this.lastRenderHeight < height) {
-        this.lastRenderWidth = width;
-        this.lastRenderHeight = height;
-        this.handleResize();
-      }
+      this.handleResize();
     });
 
     this.pointerHandler = new PointerActionHandler(
@@ -447,11 +443,7 @@ export class EditorEngine extends PianoRollEngine {
 
   protected override attachListeners(): void {
     this.app.renderer.on("resize", (width, height) => {
-      if (this.lastRenderWidth < width || this.lastRenderHeight < height) {
-        this.lastRenderWidth = width;
-        this.lastRenderHeight = height;
-        this.handleResize();
-      }
+      this.handleResize();
     });
 
     this.pointerHandler = new PointerActionHandler(
