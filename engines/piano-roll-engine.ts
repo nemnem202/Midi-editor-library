@@ -221,6 +221,7 @@ export abstract class PianoRollEngine {
     }
     if ([...actions].some((a) => a === Action.CHANGE_CURRENT_TRACK)) {
       this.grayedNotesRenderer.draw();
+      this.pianoKeyboardRenderer.draw();
     }
     if ([...actions].some((a) => GRID_ACTIONS.includes(a))) {
       this.gridRenderer.draw();
@@ -451,15 +452,15 @@ export class PlayerEngine extends PianoRollEngine {
   protected onSoundEngineTickUpdate(tick: number): void {
     this.playheadRenderer.updatePlayhead(tick);
     this.gridRenderer.draw();
+    const notesEvents = this.soundEngine.notesEvents.get(this.state.currentTrackId);
 
-    if (this.soundEngine._notesOn.length === 0 && this.soundEngine._notesOff.length === 0) return;
+    if (!notesEvents || (notesEvents?.notesOn.length === 0 && notesEvents?.notesOff.length === 0))
+      return;
 
-    const notesOn = [...this.soundEngine._notesOn];
-    const notesOff = [...this.soundEngine._notesOff];
-    logger.info("notes off", notesOff);
-    this.soundEngine.clearNotesEvents();
-
+    const notesOn = [...notesEvents.notesOn];
+    const notesOff = [...notesEvents.notesOff];
     this.pianoKeyboardRenderer.colorNotes(notesOn, notesOff);
+    this.soundEngine.clearNotesEvents();
   }
 }
 

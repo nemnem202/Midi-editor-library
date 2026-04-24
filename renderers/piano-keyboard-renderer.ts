@@ -74,9 +74,10 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     const { height } = this.deps.app.screen;
     const { pianoKeyboardSize, colors } = this.deps.engine;
     const keywidth = this.deps.app.screen.width / 75;
-    const graphic = this.keyGraphics.get(midi)!; // 👈 plus de children[midi]
+    const graphic = this.keyGraphics.get(midi)!;
     graphic.clear();
 
+    logger.info("Redraw");
     if (isBlackKey(midi)) {
       const whitesBefore = this.countWhiteKeysBefore(midi);
       graphic
@@ -97,6 +98,7 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   }
 
   colorNotes(notesOn: number[], notesOff: number[]): void {
+    logger.info("Notes", notesOn, notesOff);
     for (const midi of notesOn) this.redrawKey(midi, true);
     for (const midi of notesOff) this.redrawKey(midi, false);
   }

@@ -24,8 +24,11 @@ export default class SoundEngine {
   private processFrameId: number | null = null;
   private tickFrameId: number | null = null;
 
-  private notesOn: number[] = [];
-  private notesOff: number[] = [];
+  // private notesOn: number[] = [];
+  // private notesOff: number[] = [];
+
+  private notesEventsOfEachTrack: Map<number, { notesOn: number[]; notesOff: number[] }> =
+    new Map();
 
   private constructor(
     private state: State,
@@ -58,19 +61,16 @@ export default class SoundEngine {
     return Tone.getTransport().ticks;
   }
 
-  public get _notesOn(): number[] {
-    return this.notesOn;
-  }
-
-  public get _notesOff(): number[] {
-    return this.notesOff;
+  public get notesEvents(): typeof this.notesEventsOfEachTrack {
+    return this.notesEventsOfEachTrack;
   }
 
   public clearNotesEvents() {
-    this.notesOn.length = 0;
-    this.notesOff.length = 0;
+    for (const event of this.notesEventsOfEachTrack.values()) {
+      event.notesOn.length = 0;
+      event.notesOff.length = 0;
+    }
   }
-
   public static async init(state: State, onTickUpdate: (tick: number) => void) {
     console.log("SoundEngine: static init() called");
 
@@ -120,10 +120,11 @@ export default class SoundEngine {
       p.dispose();
     });
     this.parts = [];
-
+    this.notesEventsOfEachTrack.clear();
     this.state.tracks.forEach((track, index) => {
+      this.notesEventsOfEachTrack.set(track.id, { notesOn: [], notesOff: [] });
       const synth = this.getInstrumentForTrack(index);
-      if (synth) this.scheduleMidiEvents(track, synth, this.state.currentTrackId === track.id);
+      if (synth) this.scheduleMidiEvents(track, synth);
     });
   }
 
@@ -143,12 +144,16 @@ export default class SoundEngine {
     }
   }
 
-  private scheduleMidiEvents(track: Track, synth: Tone.PolySynth, isCurrent: boolean) {
+  private scheduleMidiEvents(track: Track, synth: Tone.PolySynth) {
     const notes = this.createNotesFromTrack(track);
+    if (!this.notesEventsOfEachTrack.has(track.id)) {
+      this.notesEventsOfEachTrack.set(track.id, { notesOn: [], notesOff: [] });
+    }
+    const trackEvents = this.notesEventsOfEachTrack.get(track.id);
     const attackPart = new Tone.Part(
       (time, note) => {
         synth.triggerAttack(Tone.Midi(note.midi).toNote(), time, note.velocity / 100);
-        isCurrent && this.notesOn.push(note.midi);
+        trackEvents?.notesOn.push(note.midi);
       },
       notes.map((note) => ({ ...note, time: note.time }))
     );
@@ -156,7 +161,7 @@ export default class SoundEngine {
     const releasePart = new Tone.Part(
       (time, note) => {
         synth.triggerRelease(Tone.Midi(note.midi).toNote(), time);
-        isCurrent && this.notesOff.push(note.midi);
+        trackEvents?.notesOff.push(note.midi);
       },
       notes.map((note) => ({
         ...note,
