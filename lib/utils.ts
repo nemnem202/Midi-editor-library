@@ -37,7 +37,7 @@ export function getNearestSubdivisionRoundedTick(
   ppq: number,
   resolution: [number, number],
   tick: number,
-  magnetism = true,
+  magnetism = true
 ): number {
   if (!magnetism) {
     return tick;
@@ -79,4 +79,8 @@ export function colorFromValue(value: number, whitenPercent: number = 0): string
   const lightness = baseLightness + (100 - baseLightness) * (whiten / 100);
 
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
+export function isBlackKey(midi: number): boolean {
+  return [1, 3, 6, 8, 10].includes(midi % 12);
 }

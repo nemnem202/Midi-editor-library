@@ -119,6 +119,9 @@ export abstract class PianoRollEngine {
         preference: "webgl",
       });
 
+      // @ts-expect-error
+      globalThis.__PIXI_APP__ = this.app;
+
       if (this._isDestroyed) {
         this.app.destroy(true, { children: true, texture: true });
         return;
@@ -179,19 +182,6 @@ export abstract class PianoRollEngine {
     this.pianoKeyboardRenderer.draw();
     logger.info("Draw all", Date.now() - now);
   }
-
-  // protected clearAll() {
-  //   const now = Date.now();
-  //   this.gridRenderer.clearContainer();
-  //   this.backgroundRenderer.clearContainer();
-  //   this.notesRenderer.clearContainer();
-  //   this.grayedNotesRenderer.clearContainer();
-  //   this.playheadRenderer.clearContainer();
-  //   this.loopRenderer.clearContainer();
-  //   this.viewportRenderer.clearContainer();
-  //   this.pianoKeyboardRenderer.clearContainer();
-  //   logger.info("Clear all", Date.now() - now);
-  // }
 
   protected onTickUpdate() {
     if (!this.hasInitialized || !this.app.renderer) return;
@@ -459,6 +449,15 @@ export class PlayerEngine extends PianoRollEngine {
   protected onSoundEngineTickUpdate(tick: number): void {
     this.playheadRenderer.updatePlayhead(tick);
     this.gridRenderer.draw();
+
+    if (this.soundEngine._notesOn.length === 0 && this.soundEngine._notesOff.length === 0) return;
+
+    const notesOn = [...this.soundEngine._notesOn];
+    const notesOff = [...this.soundEngine._notesOff];
+    logger.info("notes off", notesOff);
+    this.soundEngine.clearNotesEvents();
+
+    this.pianoKeyboardRenderer.colorNotes(notesOn, notesOff);
   }
 }
 

@@ -24,6 +24,9 @@ export default class SoundEngine {
   private processFrameId: number | null = null;
   private tickFrameId: number | null = null;
 
+  private notesOn: number[] = [];
+  private notesOff: number[] = [];
+
   private constructor(
     private state: State,
     private onTickUpdate: (tick: number) => void
@@ -37,7 +40,6 @@ export default class SoundEngine {
       }
     });
 
-    // Lancer la boucle de traitement des actions
     this.startProcessLoop();
   }
 
@@ -54,6 +56,19 @@ export default class SoundEngine {
 
   public get currentTicks(): number {
     return Tone.getTransport().ticks;
+  }
+
+  public get _notesOn(): number[] {
+    return this.notesOn;
+  }
+
+  public get _notesOff(): number[] {
+    return this.notesOff;
+  }
+
+  public clearNotesEvents() {
+    this.notesOn.length = 0;
+    this.notesOff.length = 0;
   }
 
   public static async init(state: State, onTickUpdate: (tick: number) => void) {
@@ -108,7 +123,7 @@ export default class SoundEngine {
 
     this.state.tracks.forEach((track, index) => {
       const synth = this.getInstrumentForTrack(index);
-      if (synth) this.scheduleMidiEvents(track, synth);
+      if (synth) this.scheduleMidiEvents(track, synth, this.state.currentTrackId === track.id);
     });
   }
 
@@ -128,20 +143,32 @@ export default class SoundEngine {
     }
   }
 
-  private scheduleMidiEvents(track: Track, synth: Tone.PolySynth) {
-    const part = new Tone.Part((time, note) => {
-      synth.triggerAttackRelease(
-        Tone.Midi(note.midi).toNote(),
-        `${note.durationTicks}i`,
-        time,
-        note.velocity / 100
-      );
-    }, this.createNotesFromTrack(track));
+  private scheduleMidiEvents(track: Track, synth: Tone.PolySynth, isCurrent: boolean) {
+    const notes = this.createNotesFromTrack(track);
+    const attackPart = new Tone.Part(
+      (time, note) => {
+        synth.triggerAttack(Tone.Midi(note.midi).toNote(), time, note.velocity / 100);
+        isCurrent && this.notesOn.push(note.midi);
+      },
+      notes.map((note) => ({ ...note, time: note.time }))
+    );
 
-    part.start(0);
-    this.parts.push(part);
+    const releasePart = new Tone.Part(
+      (time, note) => {
+        synth.triggerRelease(Tone.Midi(note.midi).toNote(), time);
+        isCurrent && this.notesOff.push(note.midi);
+      },
+      notes.map((note) => ({
+        ...note,
+        time: note.timeOff,
+      }))
+    );
+
+    attackPart.start(0);
+    releasePart.start(0);
+
+    this.parts.push(attackPart, releasePart);
   }
-
   private createNotesFromTrack(track: Track) {
     const array: any[] = [];
     for (let i = 0; i <= track.data.noteCount; i++) {
@@ -151,6 +178,7 @@ export default class SoundEngine {
       const midi = track.data.midiValues[i];
       array.push({
         time: `${start}i`,
+        timeOff: `${start + durationTicks}i`, // 👈 calculé ici, en ticks
         durationTicks,
         velocity,
         midi,
@@ -158,30 +186,21 @@ export default class SoundEngine {
     }
     return array;
   }
-
   private processActions() {
     const actions = this.actionsDirtyFlags;
 
-    // 1. Changement de BPM
     if (actions.has(Action.SET_BPM)) {
       Tone.getTransport().bpm.value = this.state.config.bpm;
     }
 
-    // // 2. Changement de notes (Ajout, Déplacement, Suppression)
-    // if ([...actions].some((a) => MIDI_EVENT_CHANGE_ACTIONS.includes(a))) {
-    //   this.updateMidiEvents();
-    // }
-
-    // 3. Changement de la position de départ (Transport)
     if (actions.has(Action.SET_TRANSPORT_START)) {
       this.startingTick = this.state.transport.start;
-      // Si on joue déjà, on déplace la tête de lecture de Tone immédiatement
+
       if (this.state.config.isPlaying) {
         Tone.getTransport().ticks = this.startingTick;
       }
     }
 
-    // 4. PLAY / PAUSE
     if (actions.has(Action.TOGGLE_PLAY)) {
       logger.info("Play");
       if (this.state.config.isPlaying) {

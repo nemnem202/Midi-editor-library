@@ -25,7 +25,7 @@ export function convertMidiFileToState(file: Midi): State {
       totalDuration: file.durationTicks,
       tracklisPosition: 0,
     },
-    currentTrackId: 11,
+    currentTrackId: 2,
     queuedActions: new Set(),
     tracks: file.tracks.map((track, index) => ({
       id: index,

@@ -90,7 +90,7 @@ export class PlayerNotesRenderer extends NotesRenderer {
       }
       sprite.visible = true;
       sprite.y = totalDuration - startTicks[i] - durationInTicks[i];
-      sprite.x = noteWidth * (128 - midiValues[i]);
+      sprite.x = noteWidth * midiValues[i];
       sprite.width = noteWidth;
       sprite.height = durationInTicks[i];
       sprite.tint = colors.primary;
