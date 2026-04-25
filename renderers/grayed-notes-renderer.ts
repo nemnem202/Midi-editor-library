@@ -99,7 +99,7 @@ export class PlayerGrayedNotesRenderer extends GrayedNotesRenderer {
       }
       sprite.visible = true;
       sprite.y = totalDuration - startTicks[i] - durationInTicks[i];
-      sprite.x = noteWidth * (128 - midiValues[i]);
+      sprite.x = noteWidth * midiValues[i];
       sprite.width = noteWidth;
       sprite.height = durationInTicks[i];
       sprite.tint = colors.muted;
@@ -146,7 +146,7 @@ export class EditorGrayedNotesRenderer extends GrayedNotesRenderer {
       }
       sprite.visible = true;
       sprite.x = startTicks[i];
-      sprite.y = noteHeight * midiValues[i];
+      sprite.y = noteHeight * (128 - midiValues[i]);
       sprite.width = durationInTicks[i];
       sprite.height = noteHeight;
       sprite.tint = colors.muted;

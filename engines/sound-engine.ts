@@ -9,6 +9,7 @@ interface TrackInstruments {
   guitar: Tone.PolySynth;
   bass: Tone.PolySynth;
   drums: Tone.PolySynth;
+  strings: Tone.PolySynth;
 }
 
 export default class SoundEngine {
@@ -23,9 +24,6 @@ export default class SoundEngine {
   private actionsDirtyFlags = new Set<Action>();
   private processFrameId: number | null = null;
   private tickFrameId: number | null = null;
-
-  // private notesOn: number[] = [];
-  // private notesOff: number[] = [];
 
   private notesEventsOfEachTrack: Map<number, { notesOn: number[]; notesOff: number[] }> =
     new Map();
@@ -86,6 +84,7 @@ export default class SoundEngine {
         SoundEngine.engine.trackInstruments = {
           piano: new Tone.PolySynth().toDestination(),
           guitar: new Tone.PolySynth().toDestination(),
+          strings: new Tone.PolySynth().toDestination(),
           bass: new Tone.PolySynth().toDestination(),
           drums: new Tone.PolySynth().toDestination(),
         };
@@ -121,24 +120,28 @@ export default class SoundEngine {
     });
     this.parts = [];
     this.notesEventsOfEachTrack.clear();
-    this.state.tracks.forEach((track, index) => {
+    this.state.tracks.forEach((track) => {
       this.notesEventsOfEachTrack.set(track.id, { notesOn: [], notesOff: [] });
-      const synth = this.getInstrumentForTrack(index);
+      const synth = this.getInstrumentForTrack(track.instrumentFamily);
       if (synth) this.scheduleMidiEvents(track, synth);
     });
   }
 
-  private getInstrumentForTrack(index: number): Tone.PolySynth | null {
+  private getInstrumentForTrack(family: string): Tone.PolySynth | null {
     if (!this.trackInstruments) return null;
-    switch (index) {
-      case 0:
+    switch (family.toLowerCase()) {
+      case "piano":
+      case "synth effects":
         return this.trackInstruments.piano;
-      case 1:
+      case "guitar":
         return this.trackInstruments.guitar;
-      case 2:
+      case "strings":
+        return this.trackInstruments.strings;
+      case "bass":
         return this.trackInstruments.bass;
-      case 3:
-        return this.trackInstruments.drums;
+      case "drums":
+        return null;
+      // return this.trackInstruments.drums;
       default:
         return null;
     }

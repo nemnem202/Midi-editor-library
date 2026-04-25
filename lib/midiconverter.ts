@@ -11,6 +11,29 @@ export async function getMidiFile(url: string): Promise<Midi> {
   return midi;
 }
 
+export async function getMidiFileFromBuffer(data: any): Promise<Midi> {
+  const { Midi } = await import("@tonejs/midi");
+
+  let finalBuffer: Uint8Array;
+
+  if (data instanceof Uint8Array) {
+    finalBuffer = data;
+  } else if (data instanceof ArrayBuffer) {
+    finalBuffer = new Uint8Array(data);
+  } else {
+    const values = Object.values(data) as number[];
+    finalBuffer = new Uint8Array(values);
+  }
+
+  try {
+    const midi = new Midi(finalBuffer);
+    logger.info("Converted from Buffer");
+    return midi;
+  } catch (e) {
+    logger.error("Failed to parse MIDI binary data", e);
+    throw e;
+  }
+}
 export function convertMidiFileToState(file: Midi): State {
   const ts = file.header.timeSignatures[0].timeSignature;
 
