@@ -240,13 +240,12 @@ export abstract class PianoRollEngine {
       const { start } = this.state.transport;
 
       this.playheadRenderer.drawTracklist();
+      this.pianoKeyboardRenderer.draw();
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
       if (!this.state.config.isPlaying) {
         this.playheadRenderer.hidePlayhead();
-        logger.info("Stop");
-        this.pianoKeyboardRenderer.draw();
       }
     }
   }

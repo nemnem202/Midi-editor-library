@@ -146,7 +146,7 @@ export class EditorGrayedNotesRenderer extends GrayedNotesRenderer {
       }
       sprite.visible = true;
       sprite.x = startTicks[i];
-      sprite.y = noteHeight * (128 - midiValues[i]);
+      sprite.y = noteHeight * midiValues[i];
       sprite.width = durationInTicks[i];
       sprite.height = noteHeight;
       sprite.tint = colors.muted;

@@ -7,10 +7,10 @@ import {
   type SpriteOptions,
 } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
-import { logger } from "../lib/logger";
 import type ViewportRenderer from "./viewport-renderer";
 import { Action } from "../types/actions";
 import { Event } from "../types/events";
+import { logger } from "@/lib/logger";
 
 export class NoteSprite extends Sprite {
   constructor(
@@ -71,6 +71,7 @@ export class PlayerNotesRenderer extends NotesRenderer {
     const { tracks, currentTrackId } = this.state;
     const { totalDuration } = this.state.transport;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
+    logger.info("Current track data: ", currentTrack);
     if (!currentTrack) return;
     const { noteCount, startTicks, durationInTicks, midiValues } = currentTrack.data;
     const { colors } = this.deps.engine;

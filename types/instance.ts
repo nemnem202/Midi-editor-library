@@ -1,3 +1,4 @@
+import type { InstrumentJSON } from "@tonejs/midi/dist/Instrument";
 import type { Action } from "./actions";
 
 export type Bpm = number;
@@ -39,12 +40,12 @@ export type TrackId = number;
 export interface Track {
   id: TrackId;
   data: MidiData;
+  instrumentFamily: InstrumentJSON["family"];
 }
 
 export interface MidiData {
   noteCount: number;
   capacity: number;
-
   midiValues: Uint8Array;
   startTicks: Uint32Array;
   durationInTicks: Uint32Array;

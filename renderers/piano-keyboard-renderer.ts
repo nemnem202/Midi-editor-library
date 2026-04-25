@@ -99,8 +99,8 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
 
   colorNotes(notesOn: number[], notesOff: number[]): void {
     logger.info("Notes", notesOn, notesOff);
-    for (const midi of notesOn) this.redrawKey(midi, true);
     for (const midi of notesOff) this.redrawKey(midi, false);
+    for (const midi of notesOn) this.redrawKey(midi, true);
   }
 
   private countWhiteKeysBefore(midi: number): number {
@@ -128,15 +128,12 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
       .fill(colors.foreground)
       .stroke({ color: colors.background, pixelLine: true });
     this.container.addChild(bg);
-    // this.container.addChild(this.keysContainer);
   }
 
   public draw(): void {
     const start = Date.now();
     const { height } = this.deps.app.screen;
-    // while (this.keysContainer.children[0]) {
-    //   this.container.children[0].destroy();
-    // }
+
     const keyHeight = height / 75;
 
     this.drawKeys(keyHeight);
@@ -146,25 +143,6 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
 
   protected drawKeys(keyHeight: number): void {
     const { pianoKeyboardSize, colors } = this.deps.engine;
-    // for (let i = 0; i < 75; i++) {
-    //   this.keysContainer.children[i]
-    //     .clear()
-    //     .moveTo(0, i * keyHeight)
-    //     .lineTo(pianoKeyboardSize, i * keyHeight);
-    //   if ([2, 6].includes(i % 7)) continue;
-    //   const blackKey = new Sprite({
-    //     x: 0,
-    //     y: (75 - i) * keyHeight - keyHeight * 1.25,
-    //     width: (pianoKeyboardSize * 2) / 3,
-    //     height: keyHeight / 2,
-    //     texture: Texture.WHITE,
-    //     alpha: 1,
-    //   });
-    //   blackKey.tint = colors.background;
-    //   this.container.addChild(blackKey);
-    // }
-
-    // whiteKey.stroke({ color: colors.background, pixelLine: true });
   }
 
   colorNotes(notesOn: number[], notesOff: number[]): void {}
