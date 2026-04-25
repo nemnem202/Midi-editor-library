@@ -1,6 +1,6 @@
 import { Container, Graphics } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
-import { logger } from "@/lib/logger";
+import { logger } from "../lib/logger";
 import { isBlackKey } from "../lib/utils";
 
 export interface PianoKeyboardRendererDeps extends RendererDeps {}

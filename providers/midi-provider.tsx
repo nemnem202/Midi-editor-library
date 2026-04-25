@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef } from "react
 import { useMidiStore } from "../stores/use-midi-store";
 import SoundEngine from "../engines/sound-engine";
 import type { State } from "../types/instance";
-import { logger } from "@/lib/logger";
+import { logger } from "../lib/logger";
 import { Action } from "../types/actions";
 
 const MidiContext = createContext<{

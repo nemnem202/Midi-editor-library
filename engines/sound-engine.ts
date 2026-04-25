@@ -1,6 +1,6 @@
 import * as Tone from "tone";
 import type { State, Track } from "../types/instance";
-import { logger } from "@/lib/logger";
+import { logger } from "../lib/logger";
 import { Action } from "../types/actions";
 import { useMidiStore } from "../stores/use-midi-store";
 

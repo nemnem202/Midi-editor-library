@@ -10,7 +10,7 @@ import Renderer, { type RendererDeps } from "./renderer";
 import type ViewportRenderer from "./viewport-renderer";
 import { Action } from "../types/actions";
 import { Event } from "../types/events";
-import { logger } from "@/lib/logger";
+import { logger } from "../lib/logger";
 
 export class NoteSprite extends Sprite {
   constructor(

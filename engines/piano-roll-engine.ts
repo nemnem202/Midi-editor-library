@@ -41,7 +41,7 @@ import {
   EditorGrayedNotesRenderer,
   PlayerGrayedNotesRenderer,
 } from "../renderers/grayed-notes-renderer";
-import { logger } from "@/lib/logger";
+import { logger } from "../lib/logger";
 import type { PianoRollConfig } from "../types/general";
 
 export type Strategy = "Player" | "Midi";
