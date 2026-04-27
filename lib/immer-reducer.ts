@@ -1,4 +1,4 @@
-import { type Draft } from "immer";
+import type { Draft } from "immer";
 import type { State } from "../types/instance";
 import { Action, type MidiAction } from "../types/actions";
 import {

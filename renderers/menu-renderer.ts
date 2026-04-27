@@ -1,4 +1,4 @@
-import { Container, FederatedPointerEvent, Graphics, Text, TextStyle } from "pixi.js";
+import { Container, type FederatedPointerEvent, Graphics, Text, TextStyle } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
 
 export interface MenuRendererDeps extends RendererDeps {}
