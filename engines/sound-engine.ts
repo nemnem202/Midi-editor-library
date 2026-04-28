@@ -25,6 +25,8 @@ export default class SoundEngine {
   private processFrameId: number | null = null;
   private tickFrameId: number | null = null;
 
+  private unsubscribeMidiStore: () => void;
+
   private notesEventsOfEachTrack: Map<number, { notesOn: number[]; notesOff: number[] }> =
     new Map();
 
@@ -32,7 +34,7 @@ export default class SoundEngine {
     private state: State,
     private onTickUpdate: (tick: number) => void
   ) {
-    useMidiStore.subscribe((store) => {
+    this.unsubscribeMidiStore = useMidiStore.subscribe((store) => {
       this.state = store.state;
       if (this.state.queuedActions.size > 0) {
         this.state.queuedActions.forEach((a) => {
@@ -141,7 +143,7 @@ export default class SoundEngine {
         return this.trackInstruments.bass;
       case "drums":
         return null;
-      // return this.trackInstruments.drums;
+
       default:
         return null;
     }
@@ -186,7 +188,7 @@ export default class SoundEngine {
       const midi = track.data.midiValues[i];
       array.push({
         time: `${start}i`,
-        timeOff: `${start + durationTicks}i`, // 👈 calculé ici, en ticks
+        timeOff: `${start + durationTicks}i`,
         durationTicks,
         velocity,
         midi,
@@ -271,5 +273,43 @@ export default class SoundEngine {
     this.pause();
     Tone.getTransport().cancel();
     this.onTickUpdate = () => {};
+  }
+
+  public destroy() {
+    logger.info("Détruit le SoundEngine...");
+
+    this.stopTickLoop();
+    if (this.processFrameId !== null) {
+      cancelAnimationFrame(this.processFrameId);
+      this.processFrameId = null;
+    }
+
+    const transport = Tone.getTransport();
+    transport.stop();
+    transport.cancel();
+
+    if (this.unsubscribeMidiStore) {
+      this.unsubscribeMidiStore();
+    }
+
+    if (this.trackInstruments) {
+      Object.values(this.trackInstruments).forEach((inst) => {
+        inst.dispose();
+      });
+      this.trackInstruments = null;
+    }
+
+    this.parts.forEach((part) => {
+      part.dispose();
+    });
+    this.parts = [];
+
+    this.notesEventsOfEachTrack.clear();
+    this.actionsDirtyFlags.clear();
+
+    SoundEngine.engine = null;
+    SoundEngine.isInitialized = false;
+
+    logger.success("SoundEngine détruit avec succès");
   }
 }
