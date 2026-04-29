@@ -6,6 +6,17 @@ import { logger } from "../lib/logger";
 // @ts-expect-error
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 
+export type NoteOnCallback = {
+  midiNote: number;
+  channel: number;
+  velocity: number;
+};
+
+export type NoteOffCallback = {
+  midiNote: number;
+  channel: number;
+};
+
 export default class SoundEngine {
   public static initialized = false;
   private static engine: SoundEngine | null;
@@ -22,6 +33,9 @@ export default class SoundEngine {
   private tickFrameId: number | null = null;
 
   private unsubscribeMidiStore: () => void;
+
+  private notesOnSet = new Set<NoteOnCallback>();
+  private notesOffSet = new Set<NoteOffCallback>();
 
   private constructor(
     private state: State,
@@ -46,6 +60,22 @@ export default class SoundEngine {
 
   get currentTempo() {
     return this.sequencer.currentTempo;
+  }
+
+  get notesOff() {
+    return this.notesOffSet;
+  }
+
+  get notesOn() {
+    return this.notesOnSet;
+  }
+
+  public clearNotesOn() {
+    this.notesOnSet.clear();
+  }
+
+  public clearNotesOff() {
+    this.notesOffSet.clear();
   }
 
   private startProcessLoop() {
@@ -98,6 +128,15 @@ export default class SoundEngine {
       },
     ]);
 
+    instance.synth.eventHandler.addEvent("noteOn", "Id note on", (note) => {
+      logger.info("Note on", note);
+      instance.notesOn.add(note);
+    });
+
+    instance.synth.eventHandler.addEvent("noteOff", "Id note off", (note) => {
+      instance.notesOff.add(note);
+    });
+
     return instance;
   }
   public static get(): SoundEngine {
@@ -131,15 +170,6 @@ export default class SoundEngine {
     }
 
     this.actionsDirtyFlags.clear();
-  }
-
-  private updateTime() {
-    if (!this.sequencer) return;
-
-    // this.dispatch({
-    //   type: Action.SET_TRACKLIST_POSITION,
-    //   position: currentTick,
-    // });
   }
 
   private play() {

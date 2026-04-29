@@ -2,6 +2,7 @@ import { Container, Graphics } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
 import { logger } from "../lib/logger";
 import { isBlackKey } from "../lib/utils";
+import type { NoteOffCallback, NoteOnCallback } from "../engines/sound-engine";
 
 export interface PianoKeyboardRendererDeps extends RendererDeps {}
 
@@ -21,7 +22,7 @@ export default abstract class PianoKeyboardRenderer extends Renderer<PianoKeyboa
 
   protected abstract drawKeys(keyHeight: number): void;
 
-  public abstract colorNotes(notesOn: number[], notesOff: number[]): void;
+  public abstract colorNotes(notesOn: NoteOnCallback[], notesOff: NoteOffCallback[]): void;
 }
 
 export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
@@ -97,10 +98,10 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     }
   }
 
-  colorNotes(notesOn: number[], notesOff: number[]): void {
+  colorNotes(notesOn: NoteOnCallback[], notesOff: NoteOffCallback[]): void {
     logger.info("Notes", notesOn, notesOff);
-    for (const midi of notesOff) this.redrawKey(midi, false);
-    for (const midi of notesOn) this.redrawKey(midi, true);
+    for (const { midiNote } of notesOff) this.redrawKey(midiNote, false);
+    for (const { midiNote } of notesOn) this.redrawKey(midiNote, true);
   }
 
   private countWhiteKeysBefore(midi: number): number {
@@ -145,5 +146,5 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     const { pianoKeyboardSize, colors } = this.deps.engine;
   }
 
-  colorNotes(notesOn: number[], notesOff: number[]): void {}
+  colorNotes(notesOn: NoteOnCallback[], notesOff: NoteOffCallback[]): void {}
 }

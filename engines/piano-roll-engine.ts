@@ -187,10 +187,7 @@ export abstract class PianoRollEngine {
     if (!this.hasInitialized || !this.app.renderer) return;
 
     if (this.state.transport.isPlaying) {
-      const { currentTime, currentTempo } = SoundEngine.get();
-
-      const currentTick = currentTime * (currentTempo / 60) * this.state.config.ppq;
-      this.onSoundEngineTickUpdate(currentTick);
+      this.onSoundEngineTickUpdate();
     }
 
     if (this.eventsDirtyFlags.size > 0) {
@@ -204,7 +201,7 @@ export abstract class PianoRollEngine {
     }
   }
 
-  protected abstract onSoundEngineTickUpdate(tick: number): void;
+  protected abstract onSoundEngineTickUpdate(): void;
 
   protected processActions() {
     const actions = this.actionsDirtyFlags;
@@ -448,17 +445,27 @@ export class PlayerEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  protected onSoundEngineTickUpdate(tick: number): void {
-    logger.info("Tick update", tick);
-    this.playheadRenderer.updatePlayhead(tick);
-    // this.gridRenderer.draw();
-    // const notesEvents = this.soundEngine.notesEvents.get(this.state.currentTrackId);
-    // if (!notesEvents || (notesEvents?.notesOn.length === 0 && notesEvents?.notesOff.length === 0))
-    //   return;
-    // const notesOn = [...notesEvents.notesOn];
-    // const notesOff = [...notesEvents.notesOff];
-    // this.pianoKeyboardRenderer.colorNotes(notesOn, notesOff);
-    // this.soundEngine.clearNotesEvents();
+  protected onSoundEngineTickUpdate(): void {
+    const engine = SoundEngine.get();
+    const { currentTime, currentTempo, notesOn, notesOff } = engine;
+
+    const { config, currentTrackId, tracks } = this.state;
+    const currentTick = currentTime * (currentTempo / 60) * config.ppq;
+
+    this.playheadRenderer.updatePlayhead(currentTick);
+
+    logger.info("Current track channel", tracks[currentTrackId].channel);
+
+    const notesOnCurrentTrack = Array.from(notesOn).filter(
+      (note) => note.channel === tracks[currentTrackId].channel
+    );
+    const notesOffCurrentTrack = Array.from(notesOff).filter(
+      (note) => note.channel === tracks[currentTrackId].channel
+    );
+
+    this.pianoKeyboardRenderer.colorNotes(notesOnCurrentTrack, notesOffCurrentTrack);
+    engine.clearNotesOn();
+    engine.clearNotesOff();
   }
 }
 
@@ -618,7 +625,7 @@ export class EditorEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  protected onSoundEngineTickUpdate(tick: number): void {
-    this.playheadRenderer.updatePlayhead(tick);
+  protected onSoundEngineTickUpdate(): void {
+    // this.playheadRenderer.updatePlayhead(tick);
   }
 }
