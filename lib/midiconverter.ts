@@ -49,7 +49,7 @@ export function convertMidiFileToState(file: Midi): State {
       start: 0,
       totalDuration: file.durationTicks,
       isPlaying: false,
-      tracklistPosition: 0,
+      playbackPosition: 0,
       currentMeasureIndex: 0,
     },
     currentTrackId: 2,
@@ -63,45 +63,6 @@ export function convertMidiFileToState(file: Midi): State {
 }
 
 function getTracks(file: Midi): Track[] {
-  // const allInstruments = new Set<{
-  //   instrument: InstrumentJSON["name"];
-  //   channel: TrackJSON["channel"];
-  // }>();
-
-  // file.tracks.forEach((track) => {
-  //   allInstruments.add({ channel: track.channel, instrument: track.instrument.name });
-  // });
-
-  // const tracks: Track[] = [];
-
-  // allInstruments.forEach((instrument) => {
-  //   let trackNotes = file.tracks.flatMap((track) => {
-  //     if (track.instrument.name === instrument.instrument) return track.notes;
-  //     return [];
-  //   });
-
-  //   const finalNotes = filterNotes(trackNotes);
-
-  //   trackNotes = finalNotes;
-
-  //   tracks.push({
-  //     instrument: instrument.instrument,
-  //     channel: instrument.channel,
-  //     id: 0,
-  //     data: {
-  //       capacity: trackNotes.length * 2,
-  //       noteCount: trackNotes.length,
-  //       midiValues: new Uint8Array(trackNotes.map((n) => n.midi)),
-  //       selectedNotes: new Uint8Array(trackNotes.length),
-  //       velocities: new Uint8Array(trackNotes.map((n) => Math.round(n.velocity * 100))),
-  //       startTicks: new Uint32Array(trackNotes.map((n) => n.ticks)),
-  //       durationInTicks: new Uint32Array(trackNotes.map((n) => n.durationTicks)),
-  //     },
-  //   });
-  // });
-
-  // return tracks;
-
   return file.tracks.map((track, index) => ({
     channel: track.channel,
     instrument: track.instrument.name,
@@ -109,11 +70,11 @@ function getTracks(file: Midi): Track[] {
     data: {
       capacity: track.notes.length * 2,
       noteCount: track.notes.length,
-      midiValues: new Uint8Array(track.notes.map((n) => n.midi)),
+      pitches: new Uint8Array(track.notes.map((n) => n.midi)),
       selectedNotes: new Uint8Array(track.notes.length),
       velocities: new Uint8Array(track.notes.map((n) => Math.round(n.velocity * 100))),
       startTicks: new Uint32Array(track.notes.map((n) => n.ticks)),
-      durationInTicks: new Uint32Array(track.notes.map((n) => n.durationTicks)),
+      durations: new Uint32Array(track.notes.map((n) => n.durationTicks)),
     },
   }));
 }

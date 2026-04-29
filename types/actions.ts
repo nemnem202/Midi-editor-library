@@ -36,21 +36,21 @@ export type MidiAction = (
   | {
       type: Action.ADD_NOTE;
       trackId: TrackId;
-      midi: number;
+      pitch: number;
       start: number;
       duration: number;
       velocity?: number;
     }
   | { type: Action.REMOVE_NOTE; trackId: TrackId; index: NoteIndex }
-  | { type: Action.MOVE_NOTE; trackId: TrackId; index: NoteIndex; midi: number; start: number }
+  | { type: Action.MOVE_NOTE; trackId: TrackId; index: NoteIndex; pitch: number; start: number }
   | { type: Action.RESIZE_NOTE; trackId: TrackId; index: NoteIndex; duration: number }
-  | { type: Action.MOVE_SELECTED_NOTES; trackId: TrackId; midiOffset: number; tickOffset: number }
+  | { type: Action.MOVE_SELECTED_NOTES; trackId: TrackId; pitchOffset: number; tickOffset: number }
   | { type: Action.RESIZE_SELECTED_NOTES; trackId: TrackId; duration: number }
   | { type: Action.REMOVE_SELECTED_NOTES; trackId: TrackId }
   | {
       type: Action.ADD_NOTES;
       trackId: TrackId;
-      notes: Array<{ midi: number; start: number; duration: number; velocity?: number }>;
+      notes: Array<{ pitch: number; start: number; duration: number; velocity?: number }>;
     }
   | { type: Action.SELECT_NOTE; trackId: TrackId; index: NoteIndex }
   | { type: Action.SELECT_NOTES; trackId: TrackId; indexes: NoteIndex[] }

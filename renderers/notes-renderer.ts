@@ -73,7 +73,7 @@ export class PlayerNotesRenderer extends NotesRenderer {
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
     logger.info("Current track data: ", currentTrack);
     if (!currentTrack) return;
-    const { noteCount, startTicks, durationInTicks, midiValues } = currentTrack.data;
+    const { noteCount, startTicks, durations, pitches } = currentTrack.data;
     const { colors } = this.deps.engine;
     const { width } = this.deps.app.screen;
     const noteWidth = width / 128.5;
@@ -90,10 +90,10 @@ export class PlayerNotesRenderer extends NotesRenderer {
         this.container.addChild(sprite);
       }
       sprite.visible = true;
-      sprite.y = totalDuration - startTicks[i] - durationInTicks[i];
-      sprite.x = noteWidth * midiValues[i];
+      sprite.y = totalDuration - startTicks[i] - durations[i];
+      sprite.x = noteWidth * pitches[i];
       sprite.width = noteWidth;
-      sprite.height = durationInTicks[i];
+      sprite.height = durations[i];
       sprite.tint = colors.primary;
     }
 
@@ -137,7 +137,7 @@ export class EditorNotesRenderer extends NotesRenderer {
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
     logger.info("Current track", currentTrack?.data);
     if (!currentTrack) return;
-    const { noteCount, startTicks, durationInTicks, midiValues, selectedNotes } = currentTrack.data;
+    const { noteCount, startTicks, durations, pitches, selectedNotes } = currentTrack.data;
     const { colors } = this.deps.engine;
     const noteHeight = this.deps.app.screen.height / 128;
 
@@ -154,8 +154,8 @@ export class EditorNotesRenderer extends NotesRenderer {
       }
       sprite.visible = true;
       sprite.x = startTicks[i];
-      sprite.y = noteHeight * (128 - midiValues[i]);
-      sprite.width = durationInTicks[i];
+      sprite.y = noteHeight * (128 - pitches[i]);
+      sprite.width = durations[i];
       sprite.height = noteHeight;
       sprite.tint = selectedNotes[i] === 1 ? colors.secondary : colors.primary;
     }
@@ -252,10 +252,10 @@ export class EditorNotesRenderer extends NotesRenderer {
     const noteHeight = this.deps.app.screen.height / 128;
 
     const tickOffset = Math.round(this.dragState.delta.x);
-    const midiOffset = -Math.round(this.dragState.delta.y / noteHeight);
+    const pitchOffset = -Math.round(this.dragState.delta.y / noteHeight);
     this.dispatch({
       type: Action.MOVE_SELECTED_NOTES,
-      midiOffset,
+      pitchOffset,
       tickOffset,
       trackId: currentTrackId,
     });

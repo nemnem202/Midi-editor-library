@@ -22,9 +22,9 @@ function deepCloneState(state: State): State {
       ...t,
       data: {
         ...t.data,
-        midiValues: new Uint8Array(t.data.midiValues),
+        pitches: new Uint8Array(t.data.pitches),
         startTicks: new Uint32Array(t.data.startTicks),
-        durationInTicks: new Uint32Array(t.data.durationInTicks),
+        durations: new Uint32Array(t.data.durations),
         selectedNotes: new Uint8Array(t.data.selectedNotes),
         velocities: new Uint8Array(t.data.velocities),
       },

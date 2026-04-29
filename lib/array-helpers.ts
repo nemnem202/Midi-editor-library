@@ -19,9 +19,9 @@ export function resize<T extends TypedArray>(arr: T, newCapacity: number): T {
 export function grow(m: MidiData) {
   const newCapacity = m.capacity * 2;
 
-  m.midiValues = resize(m.midiValues, newCapacity);
+  m.pitches = resize(m.pitches, newCapacity);
   m.startTicks = resize(m.startTicks, newCapacity);
-  m.durationInTicks = resize(m.durationInTicks, newCapacity);
+  m.durations = resize(m.durations, newCapacity);
   m.velocities = resize(m.velocities, newCapacity);
   m.selectedNotes = resize(m.selectedNotes, newCapacity);
 

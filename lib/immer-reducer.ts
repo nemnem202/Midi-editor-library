@@ -42,7 +42,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       track && unSelectAllNotes(track.data);
       break;
     case Action.ADD_NOTE:
-      track && addNote(track.data, action.midi, action.start, action.duration, action.velocity);
+      track && addNote(track.data, action.pitch, action.start, action.duration, action.velocity);
       break;
 
     case Action.REMOVE_NOTE:
@@ -50,7 +50,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
 
     case Action.MOVE_NOTE:
-      track && moveNote(track.data, action.index, action.midi, action.start);
+      track && moveNote(track.data, action.index, action.pitch, action.start);
       break;
 
     case Action.RESIZE_NOTE:
@@ -58,7 +58,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
 
     case Action.MOVE_SELECTED_NOTES:
-      track && moveSelectedNotes(track.data, action.midiOffset, action.tickOffset);
+      track && moveSelectedNotes(track.data, action.pitchOffset, action.tickOffset);
       break;
 
     case Action.RESIZE_SELECTED_NOTES:

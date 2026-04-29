@@ -6,7 +6,6 @@ export type Bpm = number;
 export type Signature = [number, number];
 export type Subdivision = [number, number];
 export type PPQ = number;
-export type Tick = number;
 
 export type MidiValues = Uint8Array;
 export type StartTicks = Uint32Array;
@@ -15,6 +14,10 @@ export type SelectedNotes = Uint8Array;
 export type Velocities = Uint8Array;
 
 export type NoteIndex = number;
+
+export type Pitch = number;
+export type Tick = number;
+export type Velocity = number;
 
 export interface Config {
   bpm: Bpm;
@@ -28,9 +31,9 @@ export interface Loop {
   end: Tick;
 }
 
-export interface Tansport {
+export interface Transport {
   start: Tick;
-  tracklistPosition: Tick;
+  playbackPosition: Tick;
   currentMeasureIndex: number;
   loop: Loop | null;
   totalDuration: Tick;
@@ -49,9 +52,9 @@ export interface Track {
 export interface MidiData {
   noteCount: number;
   capacity: number;
-  midiValues: Uint8Array;
+  pitches: Uint8Array;
   startTicks: Uint32Array;
-  durationInTicks: Uint32Array;
+  durations: Uint32Array;
   velocities: Uint8Array;
   selectedNotes: Uint8Array;
 }
@@ -60,7 +63,7 @@ export interface State {
   tracks: Track[];
   currentTrackId: TrackId;
   config: Config;
-  transport: Tansport;
+  transport: Transport;
   queuedActions: Set<Action>;
   rawMidiBuffer: Uint8Array;
 }

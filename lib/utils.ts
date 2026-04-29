@@ -19,11 +19,11 @@ export function cloneState(state: State): State {
       ...track,
       data: {
         ...track.data,
-        midiValues: new Uint8Array(track.data.midiValues),
+        pitches: new Uint8Array(track.data.pitches),
         selectedNotes: new Uint8Array(track.data.selectedNotes),
         velocities: new Uint8Array(track.data.velocities),
         startTicks: new Uint32Array(track.data.startTicks),
-        durationInTicks: new Uint32Array(track.data.durationInTicks),
+        durations: new Uint32Array(track.data.durations),
       },
     })),
   };
@@ -81,6 +81,6 @@ export function colorFromValue(value: number, whitenPercent: number = 0): string
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-export function isBlackKey(midi: number): boolean {
-  return [1, 3, 6, 8, 10].includes(midi % 12);
+export function isBlackKey(pitch: number): boolean {
+  return [1, 3, 6, 8, 10].includes(pitch % 12);
 }

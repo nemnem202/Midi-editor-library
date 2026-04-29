@@ -41,8 +41,8 @@ export default abstract class GrayedNotesRenderer extends Renderer<GrayedNotesRe
       noteCount: totalNotes,
       capacity: totalNotes,
       startTicks: new Uint32Array(totalNotes),
-      durationInTicks: new Uint32Array(totalNotes),
-      midiValues: new Uint8Array(totalNotes),
+      durations: new Uint32Array(totalNotes),
+      pitches: new Uint8Array(totalNotes),
       velocities: new Uint8Array(totalNotes),
       selectedNotes: new Uint8Array(totalNotes),
     };
@@ -51,8 +51,8 @@ export default abstract class GrayedNotesRenderer extends Renderer<GrayedNotesRe
     for (const track of otherTracks) {
       const { data } = track;
       mergedData.startTicks.set(data.startTicks.subarray(0, data.noteCount), offset);
-      mergedData.durationInTicks.set(data.durationInTicks.subarray(0, data.noteCount), offset);
-      mergedData.midiValues.set(data.midiValues.subarray(0, data.noteCount), offset);
+      mergedData.durations.set(data.durations.subarray(0, data.noteCount), offset);
+      mergedData.pitches.set(data.pitches.subarray(0, data.noteCount), offset);
       mergedData.velocities.set(data.velocities.subarray(0, data.noteCount), offset);
       mergedData.selectedNotes.set(data.selectedNotes.subarray(0, data.noteCount), offset);
 
@@ -81,7 +81,7 @@ export class PlayerGrayedNotesRenderer extends GrayedNotesRenderer {
 
     const { totalDuration } = this.state.transport;
     const { colors } = this.deps.engine;
-    const { noteCount, startTicks, durationInTicks, midiValues } = this.getMergedTracksData();
+    const { noteCount, startTicks, durations, pitches } = this.getMergedTracksData();
 
     const { width } = this.deps.app.screen;
     const noteWidth = width / 128.5;
@@ -98,10 +98,10 @@ export class PlayerGrayedNotesRenderer extends GrayedNotesRenderer {
         this.container.addChild(sprite);
       }
       sprite.visible = true;
-      sprite.y = totalDuration - startTicks[i] - durationInTicks[i];
-      sprite.x = noteWidth * midiValues[i];
+      sprite.y = totalDuration - startTicks[i] - durations[i];
+      sprite.x = noteWidth * pitches[i];
       sprite.width = noteWidth;
-      sprite.height = durationInTicks[i];
+      sprite.height = durations[i];
       sprite.tint = colors.muted;
     }
 
@@ -129,7 +129,7 @@ export class EditorGrayedNotesRenderer extends GrayedNotesRenderer {
 
     const start = Date.now();
 
-    const { noteCount, startTicks, durationInTicks, midiValues } = this.getMergedTracksData();
+    const { noteCount, startTicks, durations, pitches } = this.getMergedTracksData();
     const { colors } = this.deps.engine;
     const noteHeight = this.deps.app.screen.height / 128;
 
@@ -146,8 +146,8 @@ export class EditorGrayedNotesRenderer extends GrayedNotesRenderer {
       }
       sprite.visible = true;
       sprite.x = startTicks[i];
-      sprite.y = noteHeight * (128 - midiValues[i]);
-      sprite.width = durationInTicks[i];
+      sprite.y = noteHeight * (128 - pitches[i]);
+      sprite.width = durations[i];
       sprite.height = noteHeight;
       sprite.tint = colors.muted;
     }
