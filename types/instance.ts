@@ -60,6 +60,7 @@ export interface State {
   config: Config;
   transport: Tansport;
   queuedActions: Set<Action>;
+  rawMidiBuffer: Uint8Array;
 }
 
 export interface TrackedHistoryState {

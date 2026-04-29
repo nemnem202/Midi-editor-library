@@ -59,6 +59,7 @@ export function convertMidiFileToState(file: Midi): State {
       ...track,
       id: index,
     })),
+    rawMidiBuffer: file.toArray(),
   };
 }
 

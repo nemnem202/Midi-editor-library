@@ -5,8 +5,6 @@ import { Action } from "../types/actions";
 import { logger } from "../lib/logger";
 // @ts-expect-error
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
-// @ts-expect-error
-import midifile from "@/assets/midi/FlyMeToTheMoon.mid";
 
 export default class SoundEngine {
   public static initialized = false;
@@ -81,6 +79,17 @@ export default class SoundEngine {
     instance.sequencer = new Sequencer(instance.synth);
     SoundEngine.engine = instance;
     SoundEngine.initialized = true;
+
+    const raw = midiState.rawMidiBuffer;
+    const cleanArrayBuffer = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
+
+    instance.sequencer.loadNewSongList([
+      {
+        binary: cleanArrayBuffer as ArrayBuffer,
+        fileName: "exercise.mid",
+      },
+    ]);
+
     return instance;
   }
   public static get(): SoundEngine {
@@ -88,11 +97,11 @@ export default class SoundEngine {
     return SoundEngine.engine;
   }
   public updateMidiEvents() {
-    fetch(midifile).then(async (response) => {
-      const buffer = await response.arrayBuffer();
-      this.sequencer.loadNewSongList([{ binary: buffer }]);
-      logger.success("Midi file loaded !");
-    });
+    // fetch(midifile).then(async (response) => {
+    //   const buffer = await response.arrayBuffer();
+    //   this.sequencer.loadNewSongList([{ binary: buffer }]);
+    //   logger.success("Midi file loaded !");
+    // });
   }
 
   private processActions() {
@@ -105,6 +114,7 @@ export default class SoundEngine {
       this.startingTick = this.state.transport.start;
 
       if (this.state.transport.isPlaying) {
+        this.pause();
       }
     }
 
@@ -125,6 +135,12 @@ export default class SoundEngine {
   private pause() {
     logger.info("Pause");
     this.sequencer.pause();
+  }
+
+  private stop() {
+    logger.info("Stop");
+    this.sequencer.pause();
+    this.sequencer.currentTime = 0;
   }
 
   public destroy() {
