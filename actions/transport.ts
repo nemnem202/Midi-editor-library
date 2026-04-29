@@ -11,3 +11,7 @@ export function setLoop(transport: Tansport, loop: Loop | null) {
 export function setTotalDuration(transport: Tansport, total: Tick) {
   transport.totalDuration = total;
 }
+
+export function togglePlay(transport: Tansport) {
+  transport.isPlaying = !transport.isPlaying;
+}

@@ -186,11 +186,9 @@ export abstract class PianoRollEngine {
   protected onTickUpdate() {
     if (!this.hasInitialized || !this.app.renderer) return;
 
-    if (this.state.config.isPlaying && this.soundEngine) {
-      try {
-        const currentTick = this.soundEngine.currentTicks;
-        this.onSoundEngineTickUpdate(currentTick);
-      } catch (e) {}
+    if (this.state.transport.isPlaying) {
+      const currentTick = this.state.transport.tracklistPosition;
+      this.onSoundEngineTickUpdate(currentTick);
     }
 
     if (this.eventsDirtyFlags.size > 0) {
@@ -244,7 +242,7 @@ export abstract class PianoRollEngine {
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
-      if (!this.state.config.isPlaying) {
+      if (!this.state.transport.isPlaying) {
         this.playheadRenderer.hidePlayhead();
       }
     }
@@ -449,17 +447,15 @@ export class PlayerEngine extends PianoRollEngine {
   }
 
   protected onSoundEngineTickUpdate(tick: number): void {
-    this.playheadRenderer.updatePlayhead(tick);
-    this.gridRenderer.draw();
-    const notesEvents = this.soundEngine.notesEvents.get(this.state.currentTrackId);
-
-    if (!notesEvents || (notesEvents?.notesOn.length === 0 && notesEvents?.notesOff.length === 0))
-      return;
-
-    const notesOn = [...notesEvents.notesOn];
-    const notesOff = [...notesEvents.notesOff];
-    this.pianoKeyboardRenderer.colorNotes(notesOn, notesOff);
-    this.soundEngine.clearNotesEvents();
+    // this.playheadRenderer.updatePlayhead(tick);
+    // this.gridRenderer.draw();
+    // const notesEvents = this.soundEngine.notesEvents.get(this.state.currentTrackId);
+    // if (!notesEvents || (notesEvents?.notesOn.length === 0 && notesEvents?.notesOff.length === 0))
+    //   return;
+    // const notesOn = [...notesEvents.notesOn];
+    // const notesOff = [...notesEvents.notesOff];
+    // this.pianoKeyboardRenderer.colorNotes(notesOn, notesOff);
+    // this.soundEngine.clearNotesEvents();
   }
 }
 

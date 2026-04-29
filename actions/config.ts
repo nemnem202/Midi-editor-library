@@ -11,7 +11,3 @@ export function setSignature(config: Config, signature: [number, number]) {
 export function setSubdivision(config: Config, subdivision: [number, number]) {
   config.subdivision = subdivision;
 }
-
-export function togglePlay(config: Config) {
-  config.isPlaying = !config.isPlaying;
-}

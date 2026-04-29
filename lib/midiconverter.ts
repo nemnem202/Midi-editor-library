@@ -41,7 +41,6 @@ export function convertMidiFileToState(file: Midi): State {
   return {
     config: {
       bpm: file.header.tempos[0].bpm,
-      isPlaying: false,
       ppq: file.header.ppq,
       signature: [ts[0], ts[1]],
       subdivision: [1, 128],
@@ -50,7 +49,9 @@ export function convertMidiFileToState(file: Midi): State {
       loop: null,
       start: 0,
       totalDuration: file.durationTicks,
-      tracklisPosition: 0,
+      isPlaying: false,
+      tracklistPosition: 0,
+      currentMeasureIndex: 0,
     },
     currentTrackId: 2,
     queuedActions: new Set(),

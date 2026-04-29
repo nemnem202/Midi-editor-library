@@ -20,7 +20,6 @@ export interface Config {
   signature: Signature;
   subdivision: Subdivision;
   ppq: PPQ;
-  isPlaying: boolean;
 }
 
 export interface Loop {
@@ -30,9 +29,11 @@ export interface Loop {
 
 export interface Tansport {
   start: Tick;
-  tracklisPosition: Tick;
+  tracklistPosition: Tick;
+  currentMeasureIndex: number;
   loop: Loop | null;
   totalDuration: Tick;
+  isPlaying: boolean;
 }
 
 export type TrackId = number;
