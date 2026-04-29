@@ -1,315 +1,236 @@
-import * as Tone from "tone";
-import type { State, Track } from "../types/instance";
-import { logger } from "../lib/logger";
+import { Sequencer, WorkerSynthesizer } from "spessasynth_lib";
 import { Action } from "../types/actions";
+import { logger } from "../lib/logger";
+// @ts-expect-error
+import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
+import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
 
-interface TrackInstruments {
-  piano: Tone.PolySynth;
-  guitar: Tone.PolySynth;
-  bass: Tone.PolySynth;
-  drums: Tone.PolySynth;
-  strings: Tone.PolySynth;
-}
+export type NoteOnCallback = {
+  midiNote: number;
+  channel: number;
+  velocity: number;
+};
+
+export type NoteOffCallback = {
+  midiNote: number;
+  channel: number;
+};
 
 export default class SoundEngine {
-  private static engine: SoundEngine | null = null;
-  public static isInitialized = false;
+  private static instance: SoundEngine | null = null;
+  private static context: AudioContext | null = null;
+  private isInitializing = false;
+  private synth!: WorkerSynthesizer;
+  private sequencer!: Sequencer;
+  private tickUpdateCallback!: (tick: number) => void;
 
-  private trackInstruments: TrackInstruments | null = null;
-  private parts: Tone.Part[] = [];
   private animationFrameId: number | null = null;
   private startingTick = 0;
+
+  private midiState: State | null = null;
 
   private actionsDirtyFlags = new Set<Action>();
   private processFrameId: number | null = null;
   private tickFrameId: number | null = null;
 
-  private unsubscribeMidiStore: () => void;
+  private unsubscribeMidiStore!: () => void;
 
-  private notesEventsOfEachTrack: Map<number, { notesOn: number[]; notesOff: number[] }> =
-    new Map();
+  private notesOnSet = new Set<NoteOnCallback>();
+  private notesOffSet = new Set<NoteOffCallback>();
 
-  private constructor(
-    private state: State,
-    private onTickUpdate: (tick: number) => void
-  ) {
-    this.unsubscribeMidiStore = useMidiStore.subscribe((store) => {
-      this.state = store.state;
-      if (this.state.queuedActions.size > 0) {
-        this.state.queuedActions.forEach((a) => {
-          this.actionsDirtyFlags.add(a);
-        });
-      }
-    });
+  private constructor() {
+    this.subscribeToMidiStore();
+  }
+
+  public loadNewMidi() {
+    if (!this.sequencer) return;
+    if (!this.midiState) {
+      this.midiState = useMidiStore.getState().state;
+    }
+
+    if (!this.midiState?.rawMidiBuffer) {
+      return logger.warn("loadNewMidi: Buffer MIDI manquant dans le store");
+    }
+
+    this.stopProcessLoop();
+    const { rawMidiBuffer } = this.midiState;
+
+    const cleanArrayBuffer = rawMidiBuffer.buffer.slice(
+      rawMidiBuffer.byteOffset,
+      rawMidiBuffer.byteOffset + rawMidiBuffer.byteLength
+    );
+
+    this.sequencer.pause();
+    this.sequencer.songListData = [];
+    this.sequencer.loadNewSongList([
+      {
+        binary: cleanArrayBuffer as ArrayBuffer,
+        fileName: "exercise.mid",
+      },
+    ]);
 
     this.startProcessLoop();
+    logger.success("Nouveau MIDI chargé dans le séquenceur");
   }
 
   private startProcessLoop() {
     const loop = () => {
-      if (this.actionsDirtyFlags.size > 0) {
-        this.processActions();
-        this.actionsDirtyFlags.clear();
-      }
+      this.processActions();
       this.processFrameId = requestAnimationFrame(loop);
     };
     this.processFrameId = requestAnimationFrame(loop);
   }
 
-  public get currentTicks(): number {
-    return Tone.getTransport().ticks;
+  private stopProcessLoop() {
+    this.processFrameId && cancelAnimationFrame(this.processFrameId);
   }
 
-  public get notesEvents(): typeof this.notesEventsOfEachTrack {
-    return this.notesEventsOfEachTrack;
+  public static async initAudio(): Promise<SoundEngine> {
+    if (SoundEngine.instance) return SoundEngine.instance;
+
+    SoundEngine.instance = new SoundEngine();
+    SoundEngine.context = new AudioContext();
+
+    const response = await fetch(soundfont);
+    const sFbuffer = await response.arrayBuffer();
+
+    await WorkerSynthesizer.registerPlaybackWorklet(SoundEngine.context);
+    const worker = new Worker(new URL("./worker_synth_worker.js", import.meta.url), {
+      type: "module",
+    });
+
+    SoundEngine.instance.synth = new WorkerSynthesizer(
+      SoundEngine.context,
+      worker.postMessage.bind(worker)
+    );
+
+    worker.addEventListener("message", (event) =>
+      SoundEngine.instance?.synth.handleWorkerMessage(event.data)
+    );
+
+    await SoundEngine.instance.synth.isReady;
+    await SoundEngine.instance.synth.soundBankManager.addSoundBank(sFbuffer, "main");
+
+    SoundEngine.instance.synth.connect(SoundEngine.context.destination);
+
+    SoundEngine.instance.synth.eventHandler.addEvent("noteOn", "Id note on", (note) => {
+      SoundEngine.instance?.notesOn.add(note);
+    });
+
+    SoundEngine.instance.synth.eventHandler.addEvent("noteOff", "Id note off", (note) => {
+      SoundEngine.instance?.notesOff.add(note);
+    });
+
+    SoundEngine.instance.sequencer = new Sequencer(SoundEngine.instance.synth);
+    SoundEngine.instance.loadNewMidi();
+
+    return SoundEngine.instance;
   }
 
-  public clearNotesEvents() {
-    for (const event of this.notesEventsOfEachTrack.values()) {
-      event.notesOn.length = 0;
-      event.notesOff.length = 0;
-    }
+  public static get(): SoundEngine | null {
+    return SoundEngine.instance;
   }
-  public static async init(state: State, onTickUpdate: (tick: number) => void) {
-    console.log("SoundEngine: static init() called");
 
-    if (SoundEngine.isInitialized) return;
-
-    try {
-      await Tone.start();
-      logger.success("Audio Context Started");
-
-      if (!SoundEngine.engine) {
-        SoundEngine.engine = new SoundEngine(state, onTickUpdate);
-
-        SoundEngine.engine.trackInstruments = {
-          piano: new Tone.PolySynth().toDestination(),
-          guitar: new Tone.PolySynth().toDestination(),
-          strings: new Tone.PolySynth().toDestination(),
-          bass: new Tone.PolySynth().toDestination(),
-          drums: new Tone.PolySynth().toDestination(),
-        };
-
-        SoundEngine.engine.setupTransport();
+  private subscribeToMidiStore() {
+    this.unsubscribeMidiStore = useMidiStore.subscribe((store) => {
+      if (!SoundEngine.instance) return;
+      SoundEngine.instance.midiState = store.state;
+      if (SoundEngine.instance.midiState.queuedActions.size > 0) {
+        SoundEngine.instance.midiState.queuedActions.forEach((a) => {
+          if (!SoundEngine.instance) return;
+          SoundEngine.instance.actionsDirtyFlags.add(a);
+        });
       }
-
-      SoundEngine.isInitialized = true;
-      logger.success("Sound Engine fully ready");
-    } catch (e) {
-      logger.error("Failed to initialize Sound Engine", e);
-      throw e;
-    }
-  }
-
-  public static get(): SoundEngine {
-    if (!SoundEngine.engine) throw new Error("Engine not created");
-    return SoundEngine.engine;
-  }
-
-  private setupTransport() {
-    Tone.getTransport().bpm.value = this.state.config.bpm;
-    Tone.getTransport().PPQ = this.state.config.ppq;
-    Tone.getTransport().scheduleRepeat(() => {
-      this.onTickUpdate(Tone.getTransport().ticks);
-    }, "16i");
-  }
-
-  public updateMidiEvents() {
-    Tone.getTransport().cancel();
-    this.parts.forEach((p) => {
-      p.dispose();
-    });
-    this.parts = [];
-    this.notesEventsOfEachTrack.clear();
-    this.state.tracks.forEach((track) => {
-      this.notesEventsOfEachTrack.set(track.id, { notesOn: [], notesOff: [] });
-      const synth = this.getInstrumentForTrack(track.instrumentFamily);
-      if (synth) this.scheduleMidiEvents(track, synth);
     });
   }
 
-  private getInstrumentForTrack(family: string): Tone.PolySynth | null {
-    if (!this.trackInstruments) return null;
-    switch (family.toLowerCase()) {
-      case "piano":
-      case "synth effects":
-        return this.trackInstruments.piano;
-      case "guitar":
-        return this.trackInstruments.guitar;
-      case "strings":
-        return this.trackInstruments.strings;
-      case "bass":
-        return this.trackInstruments.bass;
-      case "drums":
-        return null;
-
-      default:
-        return null;
-    }
+  get currentTime() {
+    return this.sequencer.currentHighResolutionTime;
   }
 
-  private scheduleMidiEvents(track: Track, synth: Tone.PolySynth) {
-    const notes = this.createNotesFromTrack(track);
-    if (!this.notesEventsOfEachTrack.has(track.id)) {
-      this.notesEventsOfEachTrack.set(track.id, { notesOn: [], notesOff: [] });
-    }
-    const trackEvents = this.notesEventsOfEachTrack.get(track.id);
-    const attackPart = new Tone.Part(
-      (time, note) => {
-        synth.triggerAttack(Tone.Midi(note.midi).toNote(), time, note.velocity / 100);
-        trackEvents?.notesOn.push(note.midi);
-      },
-      notes.map((note) => ({ ...note, time: note.time }))
-    );
-
-    const releasePart = new Tone.Part(
-      (time, note) => {
-        synth.triggerRelease(Tone.Midi(note.midi).toNote(), time);
-        trackEvents?.notesOff.push(note.midi);
-      },
-      notes.map((note) => ({
-        ...note,
-        time: note.timeOff,
-      }))
-    );
-
-    attackPart.start(0);
-    releasePart.start(0);
-
-    this.parts.push(attackPart, releasePart);
+  get currentTempo() {
+    return this.sequencer.currentTempo;
   }
-  private createNotesFromTrack(track: Track) {
-    const array: any[] = [];
-    for (let i = 0; i <= track.data.noteCount; i++) {
-      const start = track.data.startTicks[i];
-      const durationTicks = track.data.durationInTicks[i];
-      const velocity = track.data.velocities[i];
-      const midi = track.data.midiValues[i];
-      array.push({
-        time: `${start}i`,
-        timeOff: `${start + durationTicks}i`,
-        durationTicks,
-        velocity,
-        midi,
-      });
-    }
-    return array;
+
+  get notesOff() {
+    return this.notesOffSet;
   }
+
+  get notesOn() {
+    return this.notesOnSet;
+  }
+
+  get isPlaying() {
+    return !this.sequencer.paused;
+  }
+
+  public clearNotesOn() {
+    this.notesOnSet.clear();
+  }
+
+  public clearNotesOff() {
+    this.notesOffSet.clear();
+  }
+
+  public updateMidiEvents() {}
+
   private processActions() {
+    if (!this.midiState) return;
     const actions = this.actionsDirtyFlags;
 
+    if (this.actionsDirtyFlags.size === 0) return;
+
     if (actions.has(Action.SET_BPM)) {
-      Tone.getTransport().bpm.value = this.state.config.bpm;
     }
 
     if (actions.has(Action.SET_TRANSPORT_START)) {
-      this.startingTick = this.state.transport.start;
+      this.startingTick = this.midiState.transport.start;
 
-      if (this.state.config.isPlaying) {
-        Tone.getTransport().ticks = this.startingTick;
+      if (this.midiState.transport.isPlaying) {
+        this.pause();
       }
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
-      logger.info("Play");
-      if (this.state.config.isPlaying) {
+      if (this.midiState.transport.isPlaying) {
         this.play();
       } else {
         this.pause();
       }
     }
-  }
 
-  private play() {
-    logger.info("Play");
-    Tone.getTransport().ticks = this.startingTick;
-    Tone.getTransport().start();
-    this.startTickLoop();
-  }
-
-  private pause() {
-    Tone.getTransport().pause();
-    this.releaseAllInstruments();
-    this.stopTickLoop();
-  }
-
-  private reset() {
-    Tone.getTransport().stop();
-    Tone.getTransport().position = "0:0:0";
-    this.startingTick = 0;
-    this.releaseAllInstruments();
-    this.stopTickLoop();
-    this.onTickUpdate(0);
-  }
-
-  private startTickLoop() {
-    const loop = () => {
-      this.onTickUpdate(Tone.getTransport().ticks);
-      this.animationFrameId = requestAnimationFrame(loop);
-    };
-    this.animationFrameId = requestAnimationFrame(loop);
-  }
-
-  private stopTickLoop() {
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-  }
-
-  public setStartingTick(tick: number) {
-    this.startingTick = tick;
-  }
-
-  private releaseAllInstruments() {
-    if (!this.trackInstruments) return;
-    Object.values(this.trackInstruments).forEach((s) => {
-      s.releaseAll();
-    });
-  }
-
-  public stopAll() {
-    this.pause();
-    Tone.getTransport().cancel();
-    this.onTickUpdate = () => {};
-  }
-
-  public destroy() {
-    logger.info("Détruit le SoundEngine...");
-
-    this.stopTickLoop();
-    if (this.processFrameId !== null) {
-      cancelAnimationFrame(this.processFrameId);
-      this.processFrameId = null;
-    }
-
-    const transport = Tone.getTransport();
-    transport.stop();
-    transport.cancel();
-
-    if (this.unsubscribeMidiStore) {
-      this.unsubscribeMidiStore();
-    }
-
-    if (this.trackInstruments) {
-      Object.values(this.trackInstruments).forEach((inst) => {
-        inst.dispose();
-      });
-      this.trackInstruments = null;
-    }
-
-    this.parts.forEach((part) => {
-      part.dispose();
-    });
-    this.parts = [];
-
-    this.notesEventsOfEachTrack.clear();
     this.actionsDirtyFlags.clear();
+  }
 
-    SoundEngine.engine = null;
-    SoundEngine.isInitialized = false;
+  public play() {
+    if (!this.sequencer) return logger.warn("Séquenceur non prêt");
+    if (SoundEngine.context?.state === "suspended") {
+      SoundEngine.context.resume();
+    }
 
-    logger.success("SoundEngine détruit avec succès");
+    this.sequencer.play();
+  }
+
+  public pause() {
+    if (!this.sequencer) return logger.warn("Séquenceur non prêt");
+    this.sequencer.pause();
+  }
+
+  public resume() {
+    if (!this.sequencer) return logger.warn("Séquenceur non prêt");
+    this.sequencer.pause();
+    this.sequencer.currentTime = 0;
+  }
+
+  public stopAndCleanup() {
+    if (!this.sequencer) return;
+
+    this.sequencer.pause();
+    this.sequencer.currentTime = 0;
+
+    this.notesOnSet.clear();
+    this.notesOffSet.clear();
+    logger.info("Musique stoppée - Moteur maintenu en veille");
   }
 }

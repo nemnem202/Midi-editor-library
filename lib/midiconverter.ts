@@ -1,4 +1,3 @@
-import type { InstrumentJSON } from "@tonejs/midi/dist/Instrument";
 import type { State, Track } from "../types/instance";
 import { logger } from "./logger";
 import type { Midi } from "@tonejs/midi";
@@ -41,7 +40,6 @@ export function convertMidiFileToState(file: Midi): State {
   return {
     config: {
       bpm: file.header.tempos[0].bpm,
-      isPlaying: false,
       ppq: file.header.ppq,
       signature: [ts[0], ts[1]],
       subdivision: [1, 128],
@@ -50,7 +48,9 @@ export function convertMidiFileToState(file: Midi): State {
       loop: null,
       start: 0,
       totalDuration: file.durationTicks,
-      tracklisPosition: 0,
+      isPlaying: false,
+      playbackPosition: 0,
+      currentMeasureIndex: 0,
     },
     currentTrackId: 2,
     queuedActions: new Set(),
@@ -58,44 +58,25 @@ export function convertMidiFileToState(file: Midi): State {
       ...track,
       id: index,
     })),
+    rawMidiBuffer: file.toArray(),
   };
 }
 
 function getTracks(file: Midi): Track[] {
-  const allInstrumentsFamilies = new Set<InstrumentJSON["family"]>();
-
-  file.tracks.forEach((track) => {
-    allInstrumentsFamilies.add(track.instrument.family);
-  });
-
-  const tracks: Track[] = [];
-
-  allInstrumentsFamilies.forEach((family) => {
-    let trackNotes = file.tracks.flatMap((track) => {
-      if (track.instrument.family === family) return track.notes;
-      return [];
-    });
-
-    const finalNotes = filterNotes(trackNotes);
-
-    trackNotes = finalNotes;
-
-    tracks.push({
-      instrumentFamily: family,
-      id: 0,
-      data: {
-        capacity: trackNotes.length * 2,
-        noteCount: trackNotes.length,
-        midiValues: new Uint8Array(trackNotes.map((n) => n.midi)),
-        selectedNotes: new Uint8Array(trackNotes.length),
-        velocities: new Uint8Array(trackNotes.map((n) => Math.round(n.velocity * 100))),
-        startTicks: new Uint32Array(trackNotes.map((n) => n.ticks)),
-        durationInTicks: new Uint32Array(trackNotes.map((n) => n.durationTicks)),
-      },
-    });
-  });
-
-  return tracks;
+  return file.tracks.map((track, index) => ({
+    channel: track.channel,
+    instrument: track.instrument.name,
+    id: index,
+    data: {
+      capacity: track.notes.length * 2,
+      noteCount: track.notes.length,
+      pitches: new Uint8Array(track.notes.map((n) => n.midi)),
+      selectedNotes: new Uint8Array(track.notes.length),
+      velocities: new Uint8Array(track.notes.map((n) => Math.round(n.velocity * 100))),
+      startTicks: new Uint32Array(track.notes.map((n) => n.ticks)),
+      durations: new Uint32Array(track.notes.map((n) => n.durationTicks)),
+    },
+  }));
 }
 
 function filterNotes(trackNotes: Note[]) {

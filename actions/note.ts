@@ -26,18 +26,18 @@ export function selectNotes(midiData: MidiData, indexes: NoteIndex[]) {
 
 export function addNote(
   midiData: MidiData,
-  midi: number,
+  pitch: number,
   start: number,
   duration: number,
-  velocity = 100,
+  velocity = 100
 ): NoteIndex {
   if (midiData.noteCount >= midiData.capacity) {
     grow(midiData);
   }
   const index = midiData.noteCount++;
-  midiData.midiValues[index] = midi;
+  midiData.pitches[index] = pitch;
   midiData.startTicks[index] = start;
-  midiData.durationInTicks[index] = duration;
+  midiData.durations[index] = duration;
   midiData.velocities[index] = velocity;
   midiData.selectedNotes[index] = 0;
   return index;
@@ -45,29 +45,29 @@ export function addNote(
 export function removeNote(midiData: MidiData, index: NoteIndex) {
   const last = midiData.noteCount - 1;
   if (index !== last) {
-    midiData.midiValues[index] = midiData.midiValues[last];
+    midiData.pitches[index] = midiData.pitches[last];
     midiData.startTicks[index] = midiData.startTicks[last];
-    midiData.durationInTicks[index] = midiData.durationInTicks[last];
+    midiData.durations[index] = midiData.durations[last];
     midiData.velocities[index] = midiData.velocities[last];
     midiData.selectedNotes[index] = midiData.selectedNotes[last];
   }
   midiData.noteCount--;
 }
 
-export function moveNote(midiData: MidiData, index: NoteIndex, midi: number, start: number) {
-  midiData.midiValues[index] = midi;
+export function moveNote(midiData: MidiData, index: NoteIndex, pitch: number, start: number) {
+  midiData.pitches[index] = pitch;
   midiData.startTicks[index] = start;
 }
 
 export function resizeNote(midiData: MidiData, index: NoteIndex, duration: number) {
-  midiData.durationInTicks[index] = duration;
+  midiData.durations[index] = duration;
 }
 
 export function moveSelectedNotes(midiData: MidiData, midiOffset: number, tickOffset: number) {
   const { noteCount, selectedNotes } = midiData;
   for (let i = 0; i < noteCount; i++) {
     if (selectedNotes[i]) {
-      midiData.midiValues[i] += midiOffset;
+      midiData.pitches[i] += midiOffset;
       midiData.startTicks[i] += tickOffset;
     }
   }
@@ -77,7 +77,7 @@ export function resizeSelectedNotes(midiData: MidiData, duration: number) {
   const { noteCount, selectedNotes } = midiData;
   for (let i = 0; i < noteCount; i++) {
     if (selectedNotes[i]) {
-      midiData.durationInTicks[i] = duration;
+      midiData.durations[i] = duration;
     }
   }
 }
@@ -93,9 +93,9 @@ export function removeSelectedNotes(midiData: MidiData) {
 
 export function addNotes(
   midiData: MidiData,
-  notes: Array<{ midi: number; start: number; duration: number; velocity?: number }>,
+  notes: Array<{ pitch: number; start: number; duration: number; velocity?: number }>
 ) {
   for (const note of notes) {
-    addNote(midiData, note.midi, note.start, note.duration, note.velocity);
+    addNote(midiData, note.pitch, note.start, note.duration, note.velocity);
   }
 }

@@ -1,11 +1,11 @@
 import type { InstrumentJSON } from "@tonejs/midi/dist/Instrument";
 import type { Action } from "./actions";
+import type { TrackJSON } from "@tonejs/midi";
 
 export type Bpm = number;
 export type Signature = [number, number];
 export type Subdivision = [number, number];
 export type PPQ = number;
-export type Tick = number;
 
 export type MidiValues = Uint8Array;
 export type StartTicks = Uint32Array;
@@ -15,12 +15,15 @@ export type Velocities = Uint8Array;
 
 export type NoteIndex = number;
 
+export type Pitch = number;
+export type Tick = number;
+export type Velocity = number;
+
 export interface Config {
   bpm: Bpm;
   signature: Signature;
   subdivision: Subdivision;
   ppq: PPQ;
-  isPlaying: boolean;
 }
 
 export interface Loop {
@@ -28,11 +31,13 @@ export interface Loop {
   end: Tick;
 }
 
-export interface Tansport {
+export interface Transport {
   start: Tick;
-  tracklisPosition: Tick;
+  playbackPosition: Tick;
+  currentMeasureIndex: number;
   loop: Loop | null;
   totalDuration: Tick;
+  isPlaying: boolean;
 }
 
 export type TrackId = number;
@@ -40,15 +45,16 @@ export type TrackId = number;
 export interface Track {
   id: TrackId;
   data: MidiData;
-  instrumentFamily: InstrumentJSON["family"];
+  instrument: InstrumentJSON["family"];
+  channel: TrackJSON["channel"];
 }
 
 export interface MidiData {
   noteCount: number;
   capacity: number;
-  midiValues: Uint8Array;
+  pitches: Uint8Array;
   startTicks: Uint32Array;
-  durationInTicks: Uint32Array;
+  durations: Uint32Array;
   velocities: Uint8Array;
   selectedNotes: Uint8Array;
 }
@@ -57,8 +63,9 @@ export interface State {
   tracks: Track[];
   currentTrackId: TrackId;
   config: Config;
-  transport: Tansport;
+  transport: Transport;
   queuedActions: Set<Action>;
+  rawMidiBuffer: Uint8Array;
 }
 
 export interface TrackedHistoryState {

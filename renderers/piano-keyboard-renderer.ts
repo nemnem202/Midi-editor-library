@@ -2,6 +2,7 @@ import { Container, Graphics } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
 import { logger } from "../lib/logger";
 import { isBlackKey } from "../lib/utils";
+import type { NoteOffCallback, NoteOnCallback } from "../engines/sound-engine";
 
 export interface PianoKeyboardRendererDeps extends RendererDeps {}
 
@@ -21,7 +22,7 @@ export default abstract class PianoKeyboardRenderer extends Renderer<PianoKeyboa
 
   protected abstract drawKeys(keyHeight: number): void;
 
-  public abstract colorNotes(notesOn: number[], notesOff: number[]): void;
+  public abstract colorNotes(notesOn: NoteOnCallback[], notesOff: NoteOffCallback[]): void;
 }
 
 export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
@@ -65,21 +66,21 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   }
 
   protected drawKeys(keywidth: number): void {
-    for (let midi = 0; midi < 128; midi++) {
-      this.redrawKey(midi, false);
+    for (let pitch = 0; pitch < 128; pitch++) {
+      this.redrawKey(pitch, false);
     }
   }
 
-  private redrawKey(midi: number, noteOn: boolean): void {
+  private redrawKey(pitch: number, noteOn: boolean): void {
     const { height } = this.deps.app.screen;
     const { pianoKeyboardSize, colors } = this.deps.engine;
     const keywidth = this.deps.app.screen.width / 75;
-    const graphic = this.keyGraphics.get(midi)!;
+    const graphic = this.keyGraphics.get(pitch)!;
     graphic.clear();
 
     logger.info("Redraw");
-    if (isBlackKey(midi)) {
-      const whitesBefore = this.countWhiteKeysBefore(midi);
+    if (isBlackKey(pitch)) {
+      const whitesBefore = this.countWhiteKeysBefore(pitch);
       graphic
         .rect(
           whitesBefore * keywidth - keywidth * 0.25,
@@ -89,7 +90,7 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
         )
         .fill(noteOn ? colors.primary : colors.background);
     } else {
-      const whitesBefore = this.countWhiteKeysBefore(midi);
+      const whitesBefore = this.countWhiteKeysBefore(pitch);
       graphic
         .rect(whitesBefore * keywidth, height - pianoKeyboardSize, keywidth, height)
         .fill(noteOn ? colors.primary : colors.foreground)
@@ -97,15 +98,14 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     }
   }
 
-  colorNotes(notesOn: number[], notesOff: number[]): void {
-    logger.info("Notes", notesOn, notesOff);
-    for (const midi of notesOff) this.redrawKey(midi, false);
-    for (const midi of notesOn) this.redrawKey(midi, true);
+  colorNotes(notesOn: NoteOnCallback[], notesOff: NoteOffCallback[]): void {
+    for (const { midiNote } of notesOff) this.redrawKey(midiNote, false);
+    for (const { midiNote } of notesOn) this.redrawKey(midiNote, true);
   }
 
-  private countWhiteKeysBefore(midi: number): number {
+  private countWhiteKeysBefore(pitch: number): number {
     let count = 0;
-    for (let i = 0; i < midi; i++) {
+    for (let i = 0; i < pitch; i++) {
       if (![1, 3, 6, 8, 10].includes(i % 12)) count++;
     }
     return count;
@@ -145,5 +145,5 @@ export class VerticalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     const { pianoKeyboardSize, colors } = this.deps.engine;
   }
 
-  colorNotes(notesOn: number[], notesOff: number[]): void {}
+  colorNotes(notesOn: NoteOnCallback[], notesOff: NoteOffCallback[]): void {}
 }

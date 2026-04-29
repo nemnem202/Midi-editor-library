@@ -73,7 +73,7 @@ export abstract class PianoRollEngine {
 
   public state: State;
 
-  protected soundEngine!: SoundEngine;
+  protected soundEngine: SoundEngine | null = null;
 
   public pianoKeyboardSize: number;
 
@@ -186,11 +186,8 @@ export abstract class PianoRollEngine {
   protected onTickUpdate() {
     if (!this.hasInitialized || !this.app.renderer) return;
 
-    if (this.state.config.isPlaying && this.soundEngine) {
-      try {
-        const currentTick = this.soundEngine.currentTicks;
-        this.onSoundEngineTickUpdate(currentTick);
-      } catch (e) {}
+    if (this.state.transport.isPlaying) {
+      this.onSoundEngineTickUpdate();
     }
 
     if (this.eventsDirtyFlags.size > 0) {
@@ -204,7 +201,7 @@ export abstract class PianoRollEngine {
     }
   }
 
-  protected abstract onSoundEngineTickUpdate(tick: number): void;
+  protected abstract onSoundEngineTickUpdate(): void;
 
   protected processActions() {
     const actions = this.actionsDirtyFlags;
@@ -217,7 +214,7 @@ export abstract class PianoRollEngine {
       this.notesRenderer.draw();
     }
     if ([...actions].some((a) => MIDI_EVENT_CHANGE_ACTIONS.includes(a))) {
-      this.soundEngine.updateMidiEvents();
+      this.soundEngine?.updateMidiEvents();
     }
     if ([...actions].some((a) => a === Action.CHANGE_CURRENT_TRACK)) {
       this.grayedNotesRenderer.draw();
@@ -244,7 +241,7 @@ export abstract class PianoRollEngine {
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
-      if (!this.state.config.isPlaying) {
+      if (!this.state.transport.isPlaying) {
         this.playheadRenderer.hidePlayhead();
       }
     }
@@ -448,18 +445,26 @@ export class PlayerEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  protected onSoundEngineTickUpdate(tick: number): void {
-    this.playheadRenderer.updatePlayhead(tick);
-    this.gridRenderer.draw();
-    const notesEvents = this.soundEngine.notesEvents.get(this.state.currentTrackId);
+  protected onSoundEngineTickUpdate() {
+    if (!this.soundEngine) this.soundEngine = SoundEngine.get();
+    if (!this.soundEngine) return logger.error("no sound engine");
+    const { currentTime, currentTempo, notesOn, notesOff } = this.soundEngine;
 
-    if (!notesEvents || (notesEvents?.notesOn.length === 0 && notesEvents?.notesOff.length === 0))
-      return;
+    const { config, currentTrackId, tracks } = this.state;
+    const currentTick = currentTime * (currentTempo / 60) * config.ppq;
 
-    const notesOn = [...notesEvents.notesOn];
-    const notesOff = [...notesEvents.notesOff];
-    this.pianoKeyboardRenderer.colorNotes(notesOn, notesOff);
-    this.soundEngine.clearNotesEvents();
+    this.playheadRenderer.updatePlayhead(currentTick);
+
+    const notesOnCurrentTrack = Array.from(notesOn).filter(
+      (note) => note.channel === tracks[currentTrackId].channel
+    );
+    const notesOffCurrentTrack = Array.from(notesOff).filter(
+      (note) => note.channel === tracks[currentTrackId].channel
+    );
+
+    this.pianoKeyboardRenderer.colorNotes(notesOnCurrentTrack, notesOffCurrentTrack);
+    this.soundEngine.clearNotesOn();
+    this.soundEngine.clearNotesOff();
   }
 }
 
@@ -619,7 +624,7 @@ export class EditorEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  protected onSoundEngineTickUpdate(tick: number): void {
-    this.playheadRenderer.updatePlayhead(tick);
+  protected onSoundEngineTickUpdate(): void {
+    // this.playheadRenderer.updatePlayhead(tick);
   }
 }
