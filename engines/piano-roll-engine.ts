@@ -454,8 +454,6 @@ export class PlayerEngine extends PianoRollEngine {
 
     this.playheadRenderer.updatePlayhead(currentTick);
 
-    logger.info("Current track channel", tracks[currentTrackId].channel);
-
     const notesOnCurrentTrack = Array.from(notesOn).filter(
       (note) => note.channel === tracks[currentTrackId].channel
     );

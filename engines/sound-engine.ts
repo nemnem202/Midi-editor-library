@@ -129,7 +129,6 @@ export default class SoundEngine {
     ]);
 
     instance.synth.eventHandler.addEvent("noteOn", "Id note on", (note) => {
-      logger.info("Note on", note);
       instance.notesOn.add(note);
     });
 

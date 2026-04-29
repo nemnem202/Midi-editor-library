@@ -99,7 +99,6 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
   }
 
   colorNotes(notesOn: NoteOnCallback[], notesOff: NoteOffCallback[]): void {
-    logger.info("Notes", notesOn, notesOff);
     for (const { midiNote } of notesOff) this.redrawKey(midiNote, false);
     for (const { midiNote } of notesOn) this.redrawKey(midiNote, true);
   }
