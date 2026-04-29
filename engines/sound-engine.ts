@@ -5,6 +5,8 @@ import { Action } from "../types/actions";
 import { logger } from "../lib/logger";
 // @ts-expect-error
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
+// @ts-expect-error
+import midifile from "@/assets/midi/FlyMeToTheMoon.mid";
 
 export default class SoundEngine {
   public static initialized = false;
@@ -85,7 +87,13 @@ export default class SoundEngine {
     if (!SoundEngine.engine) throw new Error("Sound engine not initialized");
     return SoundEngine.engine;
   }
-  public updateMidiEvents() {}
+  public updateMidiEvents() {
+    fetch(midifile).then(async (response) => {
+      const buffer = await response.arrayBuffer();
+      this.sequencer.loadNewSongList([{ binary: buffer }]);
+      logger.success("Midi file loaded !");
+    });
+  }
 
   private processActions() {
     const actions = this.actionsDirtyFlags;
@@ -111,10 +119,12 @@ export default class SoundEngine {
 
   private play() {
     logger.info("Play");
+    this.sequencer.play();
   }
 
   private pause() {
     logger.info("Pause");
+    this.sequencer.pause();
   }
 
   public destroy() {
