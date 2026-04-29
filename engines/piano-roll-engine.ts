@@ -73,7 +73,7 @@ export abstract class PianoRollEngine {
 
   public state: State;
 
-  protected soundEngine!: SoundEngine;
+  protected soundEngine: SoundEngine | null = null;
 
   public pianoKeyboardSize: number;
 
@@ -214,7 +214,7 @@ export abstract class PianoRollEngine {
       this.notesRenderer.draw();
     }
     if ([...actions].some((a) => MIDI_EVENT_CHANGE_ACTIONS.includes(a))) {
-      this.soundEngine.updateMidiEvents();
+      this.soundEngine?.updateMidiEvents();
     }
     if ([...actions].some((a) => a === Action.CHANGE_CURRENT_TRACK)) {
       this.grayedNotesRenderer.draw();
@@ -446,8 +446,8 @@ export class PlayerEngine extends PianoRollEngine {
   }
 
   protected onSoundEngineTickUpdate(): void {
-    const engine = SoundEngine.get();
-    const { currentTime, currentTempo, notesOn, notesOff } = engine;
+    if (!this.soundEngine) return;
+    const { currentTime, currentTempo, notesOn, notesOff } = this.soundEngine;
 
     const { config, currentTrackId, tracks } = this.state;
     const currentTick = currentTime * (currentTempo / 60) * config.ppq;
@@ -462,8 +462,8 @@ export class PlayerEngine extends PianoRollEngine {
     );
 
     this.pianoKeyboardRenderer.colorNotes(notesOnCurrentTrack, notesOffCurrentTrack);
-    engine.clearNotesOn();
-    engine.clearNotesOff();
+    this.soundEngine.clearNotesOn();
+    this.soundEngine.clearNotesOff();
   }
 }
 
