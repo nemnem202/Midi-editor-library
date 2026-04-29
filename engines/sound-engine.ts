@@ -114,11 +114,20 @@ export default class SoundEngine {
 
     SoundEngine.instance.synth.connect(SoundEngine.context.destination);
 
+    SoundEngine.instance.synth.eventHandler.addEvent("noteOn", "Id note on", (note) => {
+      SoundEngine.instance?.notesOn.add(note);
+    });
+
+    SoundEngine.instance.synth.eventHandler.addEvent("noteOff", "Id note off", (note) => {
+      SoundEngine.instance?.notesOff.add(note);
+    });
+
     SoundEngine.instance.sequencer = new Sequencer(SoundEngine.instance.synth);
     SoundEngine.instance.loadNewMidi();
 
     return SoundEngine.instance;
   }
+
   public static get(): SoundEngine | null {
     return SoundEngine.instance;
   }

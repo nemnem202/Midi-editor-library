@@ -445,8 +445,9 @@ export class PlayerEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  protected onSoundEngineTickUpdate(): void {
-    if (!this.soundEngine) return;
+  protected onSoundEngineTickUpdate() {
+    if (!this.soundEngine) this.soundEngine = SoundEngine.get();
+    if (!this.soundEngine) return logger.error("no sound engine");
     const { currentTime, currentTempo, notesOn, notesOff } = this.soundEngine;
 
     const { config, currentTrackId, tracks } = this.state;

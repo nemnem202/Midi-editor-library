@@ -6,8 +6,6 @@ import type { PianoRollConfig } from "../types/general";
 export default function PianoRoll() {
   const state = useMidiStore((s) => s.state);
 
-  // useShortcuts();
-
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey) e.preventDefault();
