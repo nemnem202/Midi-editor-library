@@ -15,3 +15,7 @@ export function setTotalDuration(transport: Tansport, total: Tick) {
 export function togglePlay(transport: Tansport) {
   transport.isPlaying = !transport.isPlaying;
 }
+
+export function setTracklistPosition(transport: Tansport, position: Tick) {
+  transport.tracklistPosition = position;
+}

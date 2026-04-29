@@ -187,7 +187,9 @@ export abstract class PianoRollEngine {
     if (!this.hasInitialized || !this.app.renderer) return;
 
     if (this.state.transport.isPlaying) {
-      const currentTick = this.state.transport.tracklistPosition;
+      const { currentTime, currentTempo } = SoundEngine.get();
+
+      const currentTick = currentTime * (currentTempo / 60) * this.state.config.ppq;
       this.onSoundEngineTickUpdate(currentTick);
     }
 
@@ -447,7 +449,8 @@ export class PlayerEngine extends PianoRollEngine {
   }
 
   protected onSoundEngineTickUpdate(tick: number): void {
-    // this.playheadRenderer.updatePlayhead(tick);
+    logger.info("Tick update", tick);
+    this.playheadRenderer.updatePlayhead(tick);
     // this.gridRenderer.draw();
     // const notesEvents = this.soundEngine.notesEvents.get(this.state.currentTrackId);
     // if (!notesEvents || (notesEvents?.notesOn.length === 0 && notesEvents?.notesOff.length === 0))

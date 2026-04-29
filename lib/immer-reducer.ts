@@ -15,7 +15,13 @@ import {
   unSelectAllNotes,
 } from "../actions/note";
 import { setBpm, setSignature, setSubdivision } from "../actions/config";
-import { setLoop, setTotalDuration, setTransportStart, togglePlay } from "../actions/transport";
+import {
+  setLoop,
+  setTotalDuration,
+  setTracklistPosition,
+  setTransportStart,
+  togglePlay,
+} from "../actions/transport";
 import { addTrack, changeCurrentTrack, removeTrack } from "../actions/track";
 
 export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
@@ -105,6 +111,9 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
 
     case Action.REMOVE_TRACK:
       removeTrack(draft, action.trackId);
+      break;
+    case Action.SET_TRACKLIST_POSITION:
+      setTracklistPosition(draft.transport, action.position);
       break;
   }
 };
