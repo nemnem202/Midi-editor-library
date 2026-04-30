@@ -5,6 +5,11 @@ import { logger } from "../lib/logger";
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
+import {
+  convertSecondsToTick,
+  convertTickToSeconds,
+  getCurrentMeasureFirstTick,
+} from "../lib/utils";
 
 export type NoteOnCallback = {
   midiNote: number;
@@ -230,7 +235,6 @@ export default class SoundEngine {
 
         await this.delay(msPerBeat, signal);
       }
-
       this.sequencer.play();
     } catch (e) {
       if (e instanceof Error && e.message !== "aborted") {
@@ -248,6 +252,23 @@ export default class SoundEngine {
       this.countInController.abort();
       this.countInController = null;
       logger.info("Décompte annulé");
+    }
+    if (this.midiState) {
+      const currentTick = convertSecondsToTick(
+        this.sequencer.currentTime,
+        this.midiState.config.bpm,
+        this.midiState.config.ppq
+      );
+      const startTick = getCurrentMeasureFirstTick(this.midiState.config.ppq, currentTick, {
+        top: this.midiState.config.signature[0],
+        bottom: this.midiState.config.signature[1],
+      });
+
+      this.sequencer.currentTime = convertTickToSeconds(
+        startTick,
+        this.midiState.config.bpm,
+        this.midiState.config.ppq
+      );
     }
 
     this.sequencer.pause();

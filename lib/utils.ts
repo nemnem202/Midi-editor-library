@@ -56,10 +56,22 @@ export function getCurrentMeasureIndex(
   return Math.floor(tick / interval);
 }
 
+export function getCurrentMeasureFirstTick(
+  ppq: number,
+  tick: number,
+  timeSignature: TimeSignatureSchema
+): number {
+  const interval = getSubdivisionTickInterval(ppq, [timeSignature.top, timeSignature.bottom]);
+  return Math.floor(tick / interval) * interval;
+}
+
 export const convertSecondsToTick = (seconds: number, tempo: number, ppq: number): number => {
   return seconds * (tempo / 60) * ppq;
 };
 
+export const convertTickToSeconds = (tick: number, tempo: number, ppq: number): number => {
+  return tick / ((tempo / 60) * ppq);
+};
 export function grayFromScale(value: number): string {
   value = Math.min(10000, Math.max(0, value));
 
