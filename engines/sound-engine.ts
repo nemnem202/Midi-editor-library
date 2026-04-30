@@ -39,6 +39,8 @@ export default class SoundEngine {
   private notesOnSet = new Set<NoteOnCallback>();
   private notesOffSet = new Set<NoteOffCallback>();
 
+  private initTempo: number = 120;
+
   private constructor() {
     this.subscribeToMidiStore();
   }
@@ -69,6 +71,8 @@ export default class SoundEngine {
         fileName: "exercise.mid",
       },
     ]);
+
+    this.initTempo = this.sequencer.currentTempo.valueOf();
 
     this.startProcessLoop();
     logger.success("Nouveau MIDI chargé dans le séquenceur");
@@ -182,6 +186,8 @@ export default class SoundEngine {
     if (this.actionsDirtyFlags.size === 0) return;
 
     if (actions.has(Action.SET_BPM)) {
+      this.sequencer.playbackRate = this.midiState.config.bpm / this.initTempo;
+      logger.info("new playback rate:", this.sequencer.playbackRate);
     }
 
     if (actions.has(Action.SET_TRANSPORT_START)) {
