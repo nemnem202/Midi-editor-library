@@ -223,6 +223,10 @@ export default class SoundEngine {
     this.sequencer.currentTime = 0;
   }
 
+  public changeChannelVolume(channel: number, volume: number) {
+    this.synth.controllerChange(channel, 7, Math.min(100, Math.max(0, volume)));
+  }
+
   public stopAndCleanup() {
     if (!this.sequencer) return;
 
