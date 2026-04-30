@@ -87,7 +87,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
 
     case Action.TOGGLE_PLAY:
-      togglePlay(draft.transport);
+      togglePlay(draft.transport, action.force);
       break;
 
     case Action.STOP:

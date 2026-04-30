@@ -65,6 +65,15 @@ export function getCurrentMeasureFirstTick(
   return Math.floor(tick / interval) * interval;
 }
 
+export function getFirstTickFromMeasureIndex(
+  ppq: number,
+  measureIndex: number,
+  timeSignature: TimeSignatureSchema
+): number {
+  const interval = getSubdivisionTickInterval(ppq, [timeSignature.top, timeSignature.bottom]);
+  return measureIndex * interval;
+}
+
 export const convertSecondsToTick = (seconds: number, tempo: number, ppq: number): number => {
   return seconds * (tempo / 60) * ppq;
 };

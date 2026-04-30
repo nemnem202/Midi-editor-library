@@ -59,7 +59,7 @@ export type MidiAction = (
   | { type: Action.SET_BPM; bpm: number }
   | { type: Action.SET_SIGNATURE; signature: [number, number] }
   | { type: Action.SET_SUBDIVISION; subdivision: [number, number] }
-  | { type: Action.TOGGLE_PLAY }
+  | { type: Action.TOGGLE_PLAY; force?: boolean }
   | { type: Action.SET_TRANSPORT_START; start: number }
   | { type: Action.SET_LOOP; loop: { start: number; end: number } | null }
   | { type: Action.SET_TOTAL_DURATION; total: number }

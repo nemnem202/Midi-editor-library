@@ -31,7 +31,6 @@ export default class SoundEngine {
   private tickUpdateCallback!: (tick: number) => void;
 
   private animationFrameId: number | null = null;
-  private startingTick = 0;
 
   private midiState: State | null = null;
 
@@ -210,11 +209,11 @@ export default class SoundEngine {
     }
 
     if (actions.has(Action.SET_TRANSPORT_START)) {
-      this.startingTick = this.midiState.transport.start;
-
-      if (this.midiState.transport.isPlaying) {
-        this.pause();
-      }
+      this.sequencer.currentTime = convertTickToSeconds(
+        this.midiState.transport.start,
+        this.midiState.config.bpm,
+        this.midiState.config.ppq
+      );
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
