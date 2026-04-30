@@ -5,11 +5,7 @@ import { logger } from "../lib/logger";
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
-import {
-  convertSecondsToTick,
-  convertTickToSeconds,
-  getCurrentMeasureFirstTick,
-} from "../lib/utils";
+import { convertTickToSeconds, getCurrentMeasureFirstTick } from "../lib/utils";
 
 export type NoteOnCallback = {
   midiNote: number;
@@ -270,15 +266,14 @@ export default class SoundEngine {
       logger.info("Décompte annulé");
     }
     if (this.midiState) {
-      const currentTick = convertSecondsToTick(
-        this.sequencer.currentTime,
-        this.midiState.config.bpm,
-        this.midiState.config.ppq
+      const startTick = getCurrentMeasureFirstTick(
+        this.midiState.config.ppq,
+        this.midiState.transport.start,
+        {
+          top: this.midiState.config.signature[0],
+          bottom: this.midiState.config.signature[1],
+        }
       );
-      const startTick = getCurrentMeasureFirstTick(this.midiState.config.ppq, currentTick, {
-        top: this.midiState.config.signature[0],
-        bottom: this.midiState.config.signature[1],
-      });
 
       this.sequencer.currentTime = convertTickToSeconds(
         startTick,
