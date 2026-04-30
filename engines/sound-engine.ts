@@ -223,7 +223,7 @@ export default class SoundEngine {
     }
 
     try {
-      const msPerBeat = (60 / this.sequencer.currentTempo) * 1000;
+      const msPerBeat = (60 / (this.midiState?.config.bpm ?? this.sequencer.currentTempo)) * 1000;
 
       for (let i = 0; i < 4; i++) {
         this.synth.noteOn(9, 76, 100);
