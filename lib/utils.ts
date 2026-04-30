@@ -1,3 +1,4 @@
+import type { TimeSignatureSchema } from "@/types/entities";
 import type { State } from "../types/instance";
 
 export function areUint8ArraysEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -46,8 +47,12 @@ export function getNearestSubdivisionRoundedTick(
   return Math.round(tick / interval) * interval;
 }
 
-export function getCurrentMeasureIndex(ppq: number, tick: number): number {
-  const interval = getSubdivisionTickInterval(ppq, [1, 1]);
+export function getCurrentMeasureIndex(
+  ppq: number,
+  tick: number,
+  timeSignature: TimeSignatureSchema
+): number {
+  const interval = getSubdivisionTickInterval(ppq, [timeSignature.top, timeSignature.bottom]);
   return Math.floor(tick / interval);
 }
 
