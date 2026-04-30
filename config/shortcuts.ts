@@ -22,7 +22,7 @@ export const getShortcuts = (): Shortcut[] => {
       },
     },
     {
-      key: "enter",
+      key: "escape",
       action: () => {
         dispatch({ type: Action.STOP });
       },
