@@ -203,7 +203,7 @@ export default class SoundEngine {
     this.actionsDirtyFlags.clear();
   }
 
-  public play() {
+  private play() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
     if (SoundEngine.context?.state === "suspended") {
       SoundEngine.context.resume();
@@ -212,12 +212,12 @@ export default class SoundEngine {
     this.sequencer.play();
   }
 
-  public pause() {
+  private pause() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
     this.sequencer.pause();
   }
 
-  public resume() {
+  private resume() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
     this.sequencer.pause();
     this.sequencer.currentTime = 0;

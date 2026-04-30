@@ -46,6 +46,15 @@ export function getNearestSubdivisionRoundedTick(
   return Math.round(tick / interval) * interval;
 }
 
+export function getCurrentMeasureIndex(ppq: number, tick: number): number {
+  const interval = getSubdivisionTickInterval(ppq, [1, 1]);
+  return Math.floor(tick / interval);
+}
+
+export const convertSecondsToTick = (seconds: number, tempo: number, ppq: number): number => {
+  return seconds * (tempo / 60) * ppq;
+};
+
 export function grayFromScale(value: number): string {
   value = Math.min(10000, Math.max(0, value));
 
