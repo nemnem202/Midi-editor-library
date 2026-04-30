@@ -242,9 +242,14 @@ export abstract class PianoRollEngine {
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
-      if (!this.state.transport.isPlaying) {
+      if (!SoundEngine.get()?.isPlaying) {
+        this.onSoundEngineTickUpdate();
         this.playheadRenderer.hidePlayhead();
       }
+    }
+
+    if (actions.has(Action.STOP)) {
+      this.onSoundEngineTickUpdate();
     }
   }
 

@@ -1,5 +1,5 @@
 import { Sequencer, WorkerSynthesizer } from "spessasynth_lib";
-import { Action } from "../types/actions";
+import { Action, type MidiAction } from "../types/actions";
 import { logger } from "../lib/logger";
 // @ts-expect-error
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
@@ -47,6 +47,8 @@ export default class SoundEngine {
   private initTempo: number = 120;
 
   private countInController: AbortController | null = null;
+
+  private dispatch: (action: MidiAction) => void = () => {};
 
   private constructor() {
     this.subscribeToMidiStore();
@@ -134,6 +136,14 @@ export default class SoundEngine {
     });
 
     SoundEngine.instance.sequencer = new Sequencer(SoundEngine.instance.synth);
+
+    SoundEngine.instance.sequencer.eventHandler.addEvent("songEnded", "Id sequencer", () => {
+      logger.info("Song ended");
+      if (SoundEngine.instance) {
+        SoundEngine.instance.resume();
+        SoundEngine.instance.dispatch({ type: Action.STOP });
+      }
+    });
     SoundEngine.instance.loadNewMidi();
 
     return SoundEngine.instance;
@@ -147,6 +157,8 @@ export default class SoundEngine {
     this.unsubscribeMidiStore = useMidiStore.subscribe((store) => {
       if (!SoundEngine.instance) return;
       SoundEngine.instance.midiState = store.state;
+      SoundEngine.instance.dispatch = store.dispatch;
+      store.dispatch;
       if (SoundEngine.instance.midiState.queuedActions.size > 0) {
         SoundEngine.instance.midiState.queuedActions.forEach((a) => {
           if (!SoundEngine.instance) return;
@@ -214,6 +226,7 @@ export default class SoundEngine {
     }
 
     if (actions.has(Action.STOP)) {
+      logger.info("Stop");
       this.resume();
     }
 
@@ -282,9 +295,7 @@ export default class SoundEngine {
   private resume() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
     this.sequencer.currentTime = 0;
-    requestAnimationFrame(() => {
-      this.sequencer.pause();
-    });
+    this.sequencer.pause();
   }
 
   private delay(ms: number, signal: AbortSignal) {
