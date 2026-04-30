@@ -16,6 +16,10 @@ export function togglePlay(transport: Transport) {
   transport.isPlaying = !transport.isPlaying;
 }
 
+export function triggerStop(transport: Transport) {
+  transport.isPlaying = false;
+}
+
 export function setTracklistPosition(transport: Transport, position: Tick) {
   transport.playbackPosition = position;
 }

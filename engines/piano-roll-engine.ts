@@ -187,7 +187,7 @@ export abstract class PianoRollEngine {
   protected onTickUpdate() {
     if (!this.hasInitialized || !this.app.renderer) return;
 
-    if (this.state.transport.isPlaying) {
+    if (SoundEngine.get()?.isPlaying) {
       this.onSoundEngineTickUpdate();
     }
 

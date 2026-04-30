@@ -21,6 +21,7 @@ import {
   setTracklistPosition,
   setTransportStart,
   togglePlay,
+  triggerStop,
 } from "../actions/transport";
 import { addTrack, changeCurrentTrack, removeTrack } from "../actions/track";
 
@@ -87,6 +88,10 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
 
     case Action.TOGGLE_PLAY:
       togglePlay(draft.transport);
+      break;
+
+    case Action.STOP:
+      triggerStop(draft.transport);
       break;
 
     case Action.SET_TRANSPORT_START:

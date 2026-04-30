@@ -26,6 +26,7 @@ export enum Action {
   SET_LOOP,
   SET_TOTAL_DURATION,
   SET_TRACKLIST_POSITION,
+  STOP,
 
   CHANGE_CURRENT_TRACK,
   ADD_TRACK,
@@ -66,4 +67,5 @@ export type MidiAction = (
   | { type: Action.ADD_TRACK; track: State["tracks"][number] }
   | { type: Action.REMOVE_TRACK; trackId: TrackId }
   | { type: Action.SET_TRACKLIST_POSITION; position: number }
+  | { type: Action.STOP }
 ) & { skipHistory?: boolean };

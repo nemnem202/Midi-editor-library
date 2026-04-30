@@ -213,6 +213,10 @@ export default class SoundEngine {
       }
     }
 
+    if (actions.has(Action.STOP)) {
+      this.resume();
+    }
+
     this.actionsDirtyFlags.clear();
   }
 
@@ -270,14 +274,17 @@ export default class SoundEngine {
         this.midiState.config.ppq
       );
     }
-
-    this.sequencer.pause();
+    requestAnimationFrame(() => {
+      this.sequencer.pause();
+    });
   }
 
   private resume() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
-    this.sequencer.pause();
     this.sequencer.currentTime = 0;
+    requestAnimationFrame(() => {
+      this.sequencer.pause();
+    });
   }
 
   private delay(ms: number, signal: AbortSignal) {
