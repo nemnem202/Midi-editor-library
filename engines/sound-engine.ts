@@ -41,6 +41,8 @@ export default class SoundEngine {
 
   private initTempo: number = 120;
 
+  private countInController: AbortController | null = null;
+
   private constructor() {
     this.subscribeToMidiStore();
   }
@@ -209,17 +211,45 @@ export default class SoundEngine {
     this.actionsDirtyFlags.clear();
   }
 
-  private play() {
+  private async play() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
+
+    this.countInController?.abort();
+    this.countInController = new AbortController();
+    const signal = this.countInController.signal;
+
     if (SoundEngine.context?.state === "suspended") {
       SoundEngine.context.resume();
     }
 
-    this.sequencer.play();
+    try {
+      const msPerBeat = (60 / this.sequencer.currentTempo) * 1000;
+
+      for (let i = 0; i < 4; i++) {
+        this.synth.noteOn(9, 76, 100);
+
+        await this.delay(msPerBeat, signal);
+      }
+
+      this.sequencer.play();
+    } catch (e) {
+      if (e instanceof Error && e.message !== "aborted") {
+        logger.error("Erreur pendant le décompte:", e);
+      }
+    } finally {
+      this.countInController = null;
+    }
   }
 
   private pause() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
+
+    if (this.countInController) {
+      this.countInController.abort();
+      this.countInController = null;
+      logger.info("Décompte annulé");
+    }
+
     this.sequencer.pause();
   }
 
@@ -227,6 +257,16 @@ export default class SoundEngine {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
     this.sequencer.pause();
     this.sequencer.currentTime = 0;
+  }
+
+  private delay(ms: number, signal: AbortSignal) {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(resolve, ms);
+      signal.addEventListener("abort", () => {
+        clearTimeout(timeout);
+        reject(new Error("aborted"));
+      });
+    });
   }
 
   public changeChannelVolume(channel: number, volume: number) {
