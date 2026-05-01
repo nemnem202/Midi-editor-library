@@ -281,5 +281,20 @@ export class PlayerViewportRenderer extends ViewportRenderer {
     }
 
     logger.info("min: ", minPitch, "max: ", maxPitch);
+
+    const { width } = this.deps.app.screen;
+    const TOTAL_KEYS = 128;
+    const startPitch = minPitch - (minPitch % 12);
+    const endPitch = maxPitch - (maxPitch % 12) + 12;
+    const clampedStartPitch = Math.max(0, startPitch);
+    const clampedEndPitch = Math.min(TOTAL_KEYS, endPitch);
+    const visibleKeysCount = clampedEndPitch - clampedStartPitch;
+    const newScaleX = TOTAL_KEYS / visibleKeysCount;
+    this.container.scale.x = Math.max(newScaleX, 1);
+    const unscaledStartX = (clampedStartPitch / TOTAL_KEYS) * width;
+    this.container.x = -unscaledStartX * this.container.scale.x;
+
+    this.constrain();
+    this.deps.eventsDirtyFlags.add(Event.Viewport);
   }
 }

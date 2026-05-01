@@ -114,14 +114,9 @@ export abstract class PianoRollEngine {
   public setIsMobile(isMobile: boolean) {
     if (isMobile !== this.isMobile) {
       this.isMobile = isMobile;
-
-      // 1. Relancer la logique de détection de taille
       this.setupResizeLogic();
-
-      // 2. Réattacher les listeners (clics, drags, etc.)
-      // La méthode attachListeners s'occupera de détruire l'ancien pointerHandler
       this.attachListeners();
-
+      this.viewportRenderer.findOptimizedZoom();
       logger.info(`Switching roll engine to: ${isMobile ? "Mobile" : "Desktop"}`);
     }
   }
@@ -203,6 +198,7 @@ export abstract class PianoRollEngine {
     this.playheadRenderer.drawTracklist();
     this.loopRenderer.draw();
     this.viewportRenderer.draw();
+    if (this.isMobile) this.viewportRenderer.findOptimizedZoom();
     this.pianoKeyboardRenderer.draw();
     logger.draw("All", Date.now() - now);
   }
@@ -296,7 +292,6 @@ export abstract class PianoRollEngine {
 
   protected handleResize() {
     if (!this.hasInitialized) return;
-    this.isMobile ?? this.viewportRenderer.findOptimizedZoom();
     this.viewportRenderer.draw();
     logger.info("Resize");
     this.drawAll();
