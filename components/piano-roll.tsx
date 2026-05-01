@@ -70,7 +70,9 @@ function Content() {
     <div className="flex flex-col size-full gap-2">
       {screen.size === "sm" && screen.orientation === "vertical" && (
         <div className="w-full flex justify-end">
-          <TrackSelect />
+          <div className="w-1/2">
+            <TrackSelect />
+          </div>
         </div>
       )}
       <div
