@@ -77,8 +77,6 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     const keywidth = this.deps.app.screen.width / 75;
     const graphic = this.keyGraphics.get(pitch)!;
     graphic.clear();
-
-    logger.info("Redraw");
     if (isBlackKey(pitch)) {
       const whitesBefore = this.countWhiteKeysBefore(pitch);
       graphic

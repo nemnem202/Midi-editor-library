@@ -6,6 +6,8 @@ import type BackgroundRenderer from "./background-renderer";
 import type NotesRenderer from "./notes-renderer";
 import { Event } from "../types/events";
 import type GridRenderer from "./grid-renderer";
+import type { State } from "../types/instance";
+import { logger } from "@/lib/logger";
 
 export interface ViewportRendererDeps extends RendererDeps {
   pianoKeyboardRenderer: PianoKeyboardRenderer;
@@ -13,6 +15,7 @@ export interface ViewportRendererDeps extends RendererDeps {
   notesRenderer: NotesRenderer;
   eventsDirtyFlags: Set<Event>;
   gridRenderer: GridRenderer;
+  state: State;
 }
 
 export default abstract class ViewportRenderer extends Renderer<ViewportRendererDeps> {
@@ -48,6 +51,8 @@ export default abstract class ViewportRenderer extends Renderer<ViewportRenderer
   public abstract scrollToTick(tick: number): void;
 
   protected abstract constrain(): void;
+
+  public abstract findOptimizedZoom(): void;
 }
 
 export class EditorViewportRenderer extends ViewportRenderer {
@@ -138,6 +143,8 @@ export class EditorViewportRenderer extends ViewportRenderer {
   }
 
   public scrollToTick(): void {}
+
+  public findOptimizedZoom(): void {}
 }
 
 export class PlayerViewportRenderer extends ViewportRenderer {
@@ -174,7 +181,6 @@ export class PlayerViewportRenderer extends ViewportRenderer {
   }
 
   public draw(): void {
-    const start = Date.now();
     let needsGridUpdate = false;
     const { pianoKeyboardSize } = this.deps.engine;
     if (this.pendingZoomDeltaY !== null) {
@@ -252,5 +258,28 @@ export class PlayerViewportRenderer extends ViewportRenderer {
     this.container.y = targetWorldY - localY * scaleY;
     this.constrain();
     this.deps.eventsDirtyFlags.add(Event.Viewport);
+  }
+
+  public findOptimizedZoom(): void {
+    const { tracks } = this.deps.state;
+
+    let minPitch = 127;
+    let maxPitch = 0;
+    let hasNotes = false;
+
+    for (const track of tracks) {
+      for (const pitch of track.data.pitches) {
+        if (pitch < minPitch) minPitch = pitch;
+        if (pitch > maxPitch) maxPitch = pitch;
+        hasNotes = true;
+      }
+    }
+
+    if (!hasNotes) {
+      logger.info("Aucune note trouvée");
+      return;
+    }
+
+    logger.info("min: ", minPitch, "max: ", maxPitch);
   }
 }

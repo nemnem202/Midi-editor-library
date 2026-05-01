@@ -71,7 +71,6 @@ export class PlayerNotesRenderer extends NotesRenderer {
     const { tracks, currentTrackId } = this.state;
     const { totalDuration } = this.state.transport;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
-    logger.info("Current track data: ", currentTrack);
     if (!currentTrack) return;
     const { noteCount, startTicks, durations, pitches } = currentTrack.data;
     const { colors } = this.deps.engine;
