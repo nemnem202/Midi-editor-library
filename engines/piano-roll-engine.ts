@@ -82,12 +82,14 @@ export abstract class PianoRollEngine {
 
   public strategy: Strategy;
 
+  protected isMobile: boolean;
+
   constructor({ ...props }: PianoRollConfig) {
     this.root_div = props.root_div;
     this.pianoKeyboardSize = props.pianoKeyboardSize;
     this.colors = props.colors;
     this.strategy = props.strategy;
-
+    this.isMobile = props.isMobile;
     this.state = useMidiStore.getState().state;
 
     useMidiStore.subscribe((store) => {
@@ -107,6 +109,13 @@ export abstract class PianoRollEngine {
 
   public markEventDirtyFlag(event: Event) {
     this.eventsDirtyFlags.add(event);
+  }
+
+  public setIsMobile(isMobile: boolean) {
+    if (isMobile !== this.isMobile) {
+      this.isMobile = isMobile;
+      this.attachListeners();
+    }
   }
 
   public async init() {
@@ -332,52 +341,60 @@ export class PlayerEngine extends PianoRollEngine {
   }
 
   protected override attachListeners(): void {
+    this.app.renderer.off("resize");
+
+    if (this.pointerHandler) {
+      this.pointerHandler.destroy();
+    }
+
     this.app.renderer.on("resize", () => {
       this.eventsDirtyFlags.add(Event.Resize);
     });
 
-    this.pointerHandler = new PointerActionHandler(
-      this.app,
+    if (!this.isMobile) {
+      this.pointerHandler = new PointerActionHandler(
+        this.app,
 
-      {
-        default: {
-          onAnyPointerEvent: () => this.cursorRenderer.setCursor("default"),
-          onAltDrag: {
-            onStart: () => this.cursorRenderer.setCursor("grabbing").lock("drag"),
-            onMove: (e) => this.viewportRenderer.tryPan(e.original, e.lastPos),
-            onEnd: (_e) => {
-              document.body.style.cursor = "default";
+        {
+          default: {
+            onAnyPointerEvent: () => this.cursorRenderer.setCursor("default"),
+            onAltDrag: {
+              onStart: () => this.cursorRenderer.setCursor("grabbing").lock("drag"),
+              onMove: (e) => this.viewportRenderer.tryPan(e.original, e.lastPos),
+              onEnd: (_e) => {
+                document.body.style.cursor = "default";
+              },
+            },
+            onLeftClick: (e) => {
+              this.selectionRenderer.unselectAll();
+              this.notesRenderer.addNote(e.original);
+              this.playheadRenderer.setStart(e.original);
+            },
+            onRightClick: (e) => {
+              this.menuRenderer.drawMenu(e.original);
+            },
+
+            onWheelUp: (e) => {
+              this.viewportRenderer.handleZoom(e.original);
+            },
+            onWheelDown: (e) => {
+              this.viewportRenderer.handleZoom(e.original);
+            },
+            onCtrlWheelUp: (e) => {
+              this.viewportRenderer.handleZoom(e.original);
+            },
+            onCtrlWheelDown: (e) => {
+              this.viewportRenderer.handleZoom(e.original);
             },
           },
-          onLeftClick: (e) => {
-            this.selectionRenderer.unselectAll();
-            this.notesRenderer.addNote(e.original);
-            this.playheadRenderer.setStart(e.original);
-          },
-          onRightClick: (e) => {
-            this.menuRenderer.drawMenu(e.original);
-          },
 
-          onWheelUp: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
-          onWheelDown: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
-          onCtrlWheelUp: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
-          onCtrlWheelDown: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
+          Note: {},
+
+          Keyboard: {},
         },
-
-        Note: {},
-
-        Keyboard: {},
-      },
-      { dragThreshold: 10 }
-    );
+        { dragThreshold: 10 }
+      );
+    }
   }
 
   protected initRenderers(): void {

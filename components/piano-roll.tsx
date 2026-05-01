@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { EditorEngine, type PianoRollEngine, PlayerEngine } from "../engines/piano-roll-engine";
 import { useMidiStore } from "../stores/use-midi-store";
 import type { PianoRollConfig } from "../types/general";
+import useScreen from "@/hooks/use-screen";
 
 export default function PianoRoll() {
   const state = useMidiStore((s) => s.state);
@@ -28,9 +29,10 @@ function Content() {
   const dispatch = useMidiStore((s) => s.dispatch);
   const currentTrackId = useMidiStore((s) => s.state.currentTrackId);
   const tracks = useMidiStore((s) => s.state.tracks);
-
+  const size = useScreen();
   const [playerStrategy, setPlayerStrategy] = useState(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (!rootDiv.current) return;
 
@@ -41,6 +43,7 @@ function Content() {
       root_div: rootDiv.current,
       pianoKeyboardSize: 100,
       strategy: "Player",
+      isMobile: size === "sm",
       colors: {
         primary: getVar("--primary"),
         secondary: getVar("--secondary"),
@@ -61,6 +64,11 @@ function Content() {
       engineRef.current = null;
     };
   }, [playerStrategy]);
+
+  useEffect(() => {
+    if (!engineRef.current) return;
+    engineRef.current.setIsMobile(size === "sm");
+  }, [size]);
 
   return (
     <div className="flex flex-col size-full gap-2">

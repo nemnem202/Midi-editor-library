@@ -11,6 +11,7 @@ export type PianoRollConfig = {
   root_div: HTMLDivElement;
   pianoKeyboardSize: number;
   strategy: Strategy;
+  isMobile: boolean;
   colors: {
     primary: string;
     secondary: string;
