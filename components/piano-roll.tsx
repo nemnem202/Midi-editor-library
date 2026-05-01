@@ -29,7 +29,7 @@ function Content() {
   const dispatch = useMidiStore((s) => s.dispatch);
   const currentTrackId = useMidiStore((s) => s.state.currentTrackId);
   const tracks = useMidiStore((s) => s.state.tracks);
-  const size = useScreen();
+  const { size } = useScreen();
   const [playerStrategy, setPlayerStrategy] = useState(true);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
