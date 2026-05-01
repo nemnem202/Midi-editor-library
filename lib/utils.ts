@@ -1,3 +1,4 @@
+import type { TimeSignatureSchema } from "@/types/entities";
 import type { State } from "../types/instance";
 
 export function areUint8ArraysEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -46,6 +47,40 @@ export function getNearestSubdivisionRoundedTick(
   return Math.round(tick / interval) * interval;
 }
 
+export function getCurrentMeasureIndex(
+  ppq: number,
+  tick: number,
+  timeSignature: TimeSignatureSchema
+): number {
+  const interval = getSubdivisionTickInterval(ppq, [timeSignature.top, timeSignature.bottom]);
+  return Math.floor(tick / interval);
+}
+
+export function getCurrentMeasureFirstTick(
+  ppq: number,
+  tick: number,
+  timeSignature: TimeSignatureSchema
+): number {
+  const interval = getSubdivisionTickInterval(ppq, [timeSignature.top, timeSignature.bottom]);
+  return Math.floor(tick / interval) * interval;
+}
+
+export function getFirstTickFromMeasureIndex(
+  ppq: number,
+  measureIndex: number,
+  timeSignature: TimeSignatureSchema
+): number {
+  const interval = getSubdivisionTickInterval(ppq, [timeSignature.top, timeSignature.bottom]);
+  return measureIndex * interval;
+}
+
+export const convertSecondsToTick = (seconds: number, tempo: number, ppq: number): number => {
+  return seconds * (tempo / 60) * ppq;
+};
+
+export const convertTickToSeconds = (tick: number, tempo: number, ppq: number): number => {
+  return tick / ((tempo / 60) * ppq);
+};
 export function grayFromScale(value: number): string {
   value = Math.min(10000, Math.max(0, value));
 

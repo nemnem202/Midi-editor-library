@@ -43,6 +43,7 @@ import {
 } from "../renderers/grayed-notes-renderer";
 import { logger } from "../lib/logger";
 import type { PianoRollConfig } from "../types/general";
+import { convertSecondsToTick } from "../lib/utils";
 
 export type Strategy = "Player" | "Midi";
 
@@ -186,7 +187,7 @@ export abstract class PianoRollEngine {
   protected onTickUpdate() {
     if (!this.hasInitialized || !this.app.renderer) return;
 
-    if (this.state.transport.isPlaying) {
+    if (SoundEngine.get()?.isPlaying) {
       this.onSoundEngineTickUpdate();
     }
 
@@ -241,9 +242,14 @@ export abstract class PianoRollEngine {
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
-      if (!this.state.transport.isPlaying) {
+      if (!SoundEngine.get()?.isPlaying) {
+        this.onSoundEngineTickUpdate();
         this.playheadRenderer.hidePlayhead();
       }
+    }
+
+    if (actions.has(Action.STOP)) {
+      this.onSoundEngineTickUpdate();
     }
   }
 
@@ -451,7 +457,7 @@ export class PlayerEngine extends PianoRollEngine {
     const { currentTime, currentTempo, notesOn, notesOff } = this.soundEngine;
 
     const { config, currentTrackId, tracks } = this.state;
-    const currentTick = currentTime * (currentTempo / 60) * config.ppq;
+    const currentTick = convertSecondsToTick(currentTime, currentTempo, config.ppq);
 
     this.playheadRenderer.updatePlayhead(currentTick);
 

@@ -5,7 +5,6 @@ import type PianoKeyboardRenderer from "./piano-keyboard-renderer";
 import type BackgroundRenderer from "./background-renderer";
 import type NotesRenderer from "./notes-renderer";
 import { Event } from "../types/events";
-import { logger } from "../lib/logger";
 import type GridRenderer from "./grid-renderer";
 
 export interface ViewportRendererDeps extends RendererDeps {
@@ -136,8 +135,6 @@ export class EditorViewportRenderer extends ViewportRenderer {
     keyboard.y = background.y = this.container.y;
     keyboard.scale.y = background.scale.y = this.container.scale.y;
     keyboard.x = 0;
-
-    logger.draw("Viewport", Date.now() - start);
   }
 
   public scrollToTick(): void {}
@@ -241,8 +238,6 @@ export class PlayerViewportRenderer extends ViewportRenderer {
     keyboard.x = background.x = this.container.x;
     keyboard.scale.x = background.scale.x = this.container.scale.x;
     keyboard.y = 0;
-
-    logger.draw("Viewport", Date.now() - start);
   }
 
   public scrollToTick(tick: number): void {

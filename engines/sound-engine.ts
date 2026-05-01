@@ -1,10 +1,11 @@
 import { Sequencer, WorkerSynthesizer } from "spessasynth_lib";
-import { Action } from "../types/actions";
+import { Action, type MidiAction } from "../types/actions";
 import { logger } from "../lib/logger";
 // @ts-expect-error
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
+import { convertTickToSeconds, getCurrentMeasureFirstTick } from "../lib/utils";
 
 export type NoteOnCallback = {
   midiNote: number;
@@ -26,7 +27,6 @@ export default class SoundEngine {
   private tickUpdateCallback!: (tick: number) => void;
 
   private animationFrameId: number | null = null;
-  private startingTick = 0;
 
   private midiState: State | null = null;
 
@@ -38,6 +38,12 @@ export default class SoundEngine {
 
   private notesOnSet = new Set<NoteOnCallback>();
   private notesOffSet = new Set<NoteOffCallback>();
+
+  private initTempo: number = 120;
+
+  private countInController: AbortController | null = null;
+
+  private dispatch: (action: MidiAction) => void = () => {};
 
   private constructor() {
     this.subscribeToMidiStore();
@@ -69,6 +75,8 @@ export default class SoundEngine {
         fileName: "exercise.mid",
       },
     ]);
+
+    this.initTempo = this.sequencer.currentTempo.valueOf();
 
     this.startProcessLoop();
     logger.success("Nouveau MIDI chargé dans le séquenceur");
@@ -123,6 +131,14 @@ export default class SoundEngine {
     });
 
     SoundEngine.instance.sequencer = new Sequencer(SoundEngine.instance.synth);
+
+    SoundEngine.instance.sequencer.eventHandler.addEvent("songEnded", "Id sequencer", () => {
+      logger.info("Song ended");
+      if (SoundEngine.instance) {
+        SoundEngine.instance.resume();
+        SoundEngine.instance.dispatch({ type: Action.STOP });
+      }
+    });
     SoundEngine.instance.loadNewMidi();
 
     return SoundEngine.instance;
@@ -136,6 +152,8 @@ export default class SoundEngine {
     this.unsubscribeMidiStore = useMidiStore.subscribe((store) => {
       if (!SoundEngine.instance) return;
       SoundEngine.instance.midiState = store.state;
+      SoundEngine.instance.dispatch = store.dispatch;
+      store.dispatch;
       if (SoundEngine.instance.midiState.queuedActions.size > 0) {
         SoundEngine.instance.midiState.queuedActions.forEach((a) => {
           if (!SoundEngine.instance) return;
@@ -182,14 +200,16 @@ export default class SoundEngine {
     if (this.actionsDirtyFlags.size === 0) return;
 
     if (actions.has(Action.SET_BPM)) {
+      this.sequencer.playbackRate = this.midiState.config.bpm / this.initTempo;
+      logger.info("new playback rate:", this.sequencer.playbackRate);
     }
 
     if (actions.has(Action.SET_TRANSPORT_START)) {
-      this.startingTick = this.midiState.transport.start;
-
-      if (this.midiState.transport.isPlaying) {
-        this.pause();
-      }
+      this.sequencer.currentTime = convertTickToSeconds(
+        this.midiState.transport.start,
+        this.midiState.config.bpm,
+        this.midiState.config.ppq
+      );
     }
 
     if (actions.has(Action.TOGGLE_PLAY)) {
@@ -200,27 +220,90 @@ export default class SoundEngine {
       }
     }
 
+    if (actions.has(Action.STOP)) {
+      logger.info("Stop");
+      this.resume();
+    }
+
     this.actionsDirtyFlags.clear();
   }
 
-  public play() {
+  private async play() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
+
+    this.countInController?.abort();
+    this.countInController = new AbortController();
+    const signal = this.countInController.signal;
+
     if (SoundEngine.context?.state === "suspended") {
       SoundEngine.context.resume();
     }
 
-    this.sequencer.play();
+    try {
+      const msPerBeat = (60 / (this.midiState?.config.bpm ?? this.sequencer.currentTempo)) * 1000;
+
+      for (let i = 0; i < 4; i++) {
+        this.synth.noteOn(9, 76, 100);
+
+        await this.delay(msPerBeat, signal);
+      }
+      this.sequencer.play();
+    } catch (e) {
+      if (e instanceof Error && e.message !== "aborted") {
+        logger.error("Erreur pendant le décompte:", e);
+      }
+    } finally {
+      this.countInController = null;
+    }
   }
 
-  public pause() {
+  private pause() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
-    this.sequencer.pause();
+
+    if (this.countInController) {
+      this.countInController.abort();
+      this.countInController = null;
+      logger.info("Décompte annulé");
+    }
+    if (this.midiState) {
+      const startTick = getCurrentMeasureFirstTick(
+        this.midiState.config.ppq,
+        this.midiState.transport.start,
+        {
+          top: this.midiState.config.signature[0],
+          bottom: this.midiState.config.signature[1],
+        }
+      );
+
+      this.sequencer.currentTime = convertTickToSeconds(
+        startTick,
+        this.midiState.config.bpm,
+        this.midiState.config.ppq
+      );
+    }
+    requestAnimationFrame(() => {
+      this.sequencer.pause();
+    });
   }
 
-  public resume() {
+  private resume() {
     if (!this.sequencer) return logger.warn("Séquenceur non prêt");
-    this.sequencer.pause();
     this.sequencer.currentTime = 0;
+    this.sequencer.pause();
+  }
+
+  private delay(ms: number, signal: AbortSignal) {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(resolve, ms);
+      signal.addEventListener("abort", () => {
+        clearTimeout(timeout);
+        reject(new Error("aborted"));
+      });
+    });
+  }
+
+  public changeChannelVolume(channel: number, volume: number) {
+    this.synth.controllerChange(channel, 7, Math.min(100, Math.max(0, volume)));
   }
 
   public stopAndCleanup() {

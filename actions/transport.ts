@@ -12,8 +12,16 @@ export function setTotalDuration(transport: Transport, total: Tick) {
   transport.totalDuration = total;
 }
 
-export function togglePlay(transport: Transport) {
-  transport.isPlaying = !transport.isPlaying;
+export function togglePlay(transport: Transport, force?: boolean) {
+  if (force !== undefined) {
+    transport.isPlaying = force;
+  } else {
+    transport.isPlaying = !transport.isPlaying;
+  }
+}
+
+export function triggerStop(transport: Transport) {
+  transport.isPlaying = false;
 }
 
 export function setTracklistPosition(transport: Transport, position: Tick) {
