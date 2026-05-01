@@ -72,10 +72,9 @@ function Content() {
 
   return (
     <div className="flex flex-col size-full gap-2">
-      {/* Zone de rendu Pixi */}
       <div
         ref={rootDiv}
-        className="flex-1 w-full h-full min-h-0 bg-black rounded-lg"
+        className="flex-1 w-full h-full min-h-0 bg-black rounded-lg focus:border-none focus-visible:ring-offset-0"
         onContextMenu={(e) => e.preventDefault()}
         role="application"
         tabIndex={-1}
