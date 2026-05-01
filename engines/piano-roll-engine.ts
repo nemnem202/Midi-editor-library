@@ -174,6 +174,7 @@ export abstract class PianoRollEngine {
           }
         });
         this._resizeObserver.observe(this.root_div);
+        this.viewportRenderer.findOptimizedZoom();
       }
 
       this.app.ticker.add(() => this.onTickUpdate());
