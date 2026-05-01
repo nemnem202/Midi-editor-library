@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { EditorEngine, type PianoRollEngine, PlayerEngine } from "../engines/piano-roll-engine";
+import { useEffect, useRef } from "react";
+import { type PianoRollEngine, PlayerEngine } from "../engines/piano-roll-engine";
 import { useMidiStore } from "../stores/use-midi-store";
 import type { PianoRollConfig } from "../types/general";
 import useScreen from "@/hooks/use-screen";
+import { TrackSelect } from "@/components/features/game/game-assets";
 
 export default function PianoRoll() {
   const state = useMidiStore((s) => s.state);
@@ -25,13 +26,8 @@ export default function PianoRoll() {
 function Content() {
   const rootDiv = useRef<HTMLDivElement>(null);
   const engineRef = useRef<PianoRollEngine | null>(null);
-
-  const dispatch = useMidiStore((s) => s.dispatch);
-  const currentTrackId = useMidiStore((s) => s.state.currentTrackId);
-  const tracks = useMidiStore((s) => s.state.tracks);
   const { size } = useScreen();
-  const [playerStrategy, setPlayerStrategy] = useState(true);
-
+  const screen = useScreen();
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (!rootDiv.current) return;
@@ -54,7 +50,7 @@ function Content() {
       },
     };
 
-    const engine = playerStrategy ? new PlayerEngine(config) : new EditorEngine(config);
+    const engine = new PlayerEngine(config);
 
     engineRef.current = engine;
     engine.init();
@@ -63,7 +59,7 @@ function Content() {
       engineRef.current?.destroy();
       engineRef.current = null;
     };
-  }, [playerStrategy]);
+  }, []);
 
   useEffect(() => {
     if (!engineRef.current) return;
@@ -72,6 +68,11 @@ function Content() {
 
   return (
     <div className="flex flex-col size-full gap-2">
+      {screen.size === "sm" && screen.orientation === "vertical" && (
+        <div className="w-full flex justify-end">
+          <TrackSelect />
+        </div>
+      )}
       <div
         ref={rootDiv}
         className="flex-1 w-full h-full min-h-0 bg-black rounded-lg focus:border-none focus-visible:ring-offset-0"
