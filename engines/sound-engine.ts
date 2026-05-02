@@ -200,7 +200,7 @@ export default class SoundEngine {
     if (this.actionsDirtyFlags.size === 0) return;
 
     if (actions.has(Action.SET_BPM)) {
-      this.sequencer.playbackRate = this.midiState.config.bpm / this.initTempo;
+      this.sequencer.playbackRate = this.midiState.config.bpm / this.sequencer.currentTempo;
       logger.info("new playback rate:", this.sequencer.playbackRate);
     }
 
