@@ -1,5 +1,6 @@
 import { Container, type FederatedPointerEvent, Graphics, Text, TextStyle } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
+import { logger } from "../lib/logger";
 
 export interface MenuRendererDeps extends RendererDeps {}
 
@@ -15,25 +16,25 @@ export default class MenuRenderer extends Renderer<MenuRendererDeps> {
     {
       label: "Automatic generation",
       action: () => {
-        console.log("auto");
+        logger.info("auto");
       },
     },
     {
       label: "Humanize",
       action: () => {
-        console.log("humanize");
+        logger.info("humanize");
       },
     },
     {
       label: "Quantize",
       action: () => {
-        console.log("quantize");
+        logger.info("quantize");
       },
     },
     {
       label: "Add chord",
       action: () => {
-        console.log("add chord");
+        logger.info("add chord");
       },
     },
   ];
@@ -70,7 +71,7 @@ export default class MenuRenderer extends Renderer<MenuRendererDeps> {
 
     this.menuItems.forEach((item, index) => {
       const itemContainer = this.createMenuItem(item, index);
-      this.container!.addChild(itemContainer);
+      this.container?.addChild(itemContainer);
     });
 
     const screen = this.deps.app.screen;
@@ -107,13 +108,13 @@ export default class MenuRenderer extends Renderer<MenuRendererDeps> {
     container.addChild(hoverBg, label);
 
     container.on("pointerover", () =>
-      hoverBg.clear().rect(0, 0, this.MENU_WIDTH, this.ITEM_HEIGHT).fill("#555555"),
+      hoverBg.clear().rect(0, 0, this.MENU_WIDTH, this.ITEM_HEIGHT).fill("#555555")
     );
     container.on("pointerout", () =>
       hoverBg
         .clear()
         .rect(0, 0, this.MENU_WIDTH, this.ITEM_HEIGHT)
-        .fill({ color: "#444444", alpha: 0 }),
+        .fill({ color: "#444444", alpha: 0 })
     );
     container.on("pointerdown", (e) => {
       e.stopPropagation();

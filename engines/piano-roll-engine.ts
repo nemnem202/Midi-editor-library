@@ -180,7 +180,7 @@ export abstract class PianoRollEngine {
       this.app.ticker.add(() => this.onTickUpdate());
       this.attachListeners();
     } catch (error) {
-      console.error("PIXI Init Error:", error);
+      logger.error("PIXI Init Error:", error);
     }
   }
 
@@ -308,7 +308,7 @@ export abstract class PianoRollEngine {
       try {
         this.pointerHandler?.destroy();
       } catch (e) {
-        console.warn("PointerHandler destruction error", e);
+        logger.warn("PointerHandler destruction error", e);
       }
     }
 
