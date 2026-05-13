@@ -52,7 +52,7 @@ export function convertMidiFileToState(file: Midi): State {
       playbackPosition: 0,
       currentMeasureIndex: 0,
     },
-    currentTrackId: 2,
+    currentTrackId: 0,
     queuedActions: new Set(),
     tracks: tracks.map((track, index) => ({
       ...track,
