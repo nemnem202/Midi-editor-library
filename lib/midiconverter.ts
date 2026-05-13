@@ -63,20 +63,40 @@ export function convertMidiFileToState(file: Midi): State {
 }
 
 function getTracks(file: Midi): Track[] {
-  return file.tracks.map((track, index) => ({
-    channel: track.channel,
-    instrument: track.instrument.name,
-    id: index,
-    data: {
-      capacity: track.notes.length * 2,
-      noteCount: track.notes.length,
-      pitches: new Uint8Array(track.notes.map((n) => n.midi)),
-      selectedNotes: new Uint8Array(track.notes.length),
-      velocities: new Uint8Array(track.notes.map((n) => Math.round(n.velocity * 100))),
-      startTicks: new Uint32Array(track.notes.map((n) => n.ticks)),
-      durations: new Uint32Array(track.notes.map((n) => n.durationTicks)),
-    },
-  }));
+  const tracksByChannel = new Map<number, { instrument: string; notes: Note[] }>();
+
+  for (const track of file.tracks) {
+    const channel = track.channel;
+
+    if (tracksByChannel.has(channel)) {
+      tracksByChannel.get(channel)!.notes.push(...track.notes);
+    } else {
+      tracksByChannel.set(channel, {
+        instrument: track.instrument.name,
+        notes: [...track.notes],
+      });
+    }
+  }
+
+  return Array.from(tracksByChannel.entries()).map(([channel, { instrument, notes }], index) => {
+    const filtered = filterNotes(notes);
+    filtered.sort((a, b) => a.ticks - b.ticks);
+
+    return {
+      channel,
+      instrument,
+      id: index,
+      data: {
+        capacity: filtered.length * 2,
+        noteCount: filtered.length,
+        pitches: new Uint8Array(filtered.map((n) => n.midi)),
+        selectedNotes: new Uint8Array(filtered.length),
+        velocities: new Uint8Array(filtered.map((n) => Math.round(n.velocity * 100))),
+        startTicks: new Uint32Array(filtered.map((n) => n.ticks)),
+        durations: new Uint32Array(filtered.map((n) => n.durationTicks)),
+      },
+    };
+  });
 }
 
 function filterNotes(trackNotes: Note[]) {
@@ -93,10 +113,10 @@ function filterNotes(trackNotes: Note[]) {
 
     if (notes.length === 0) return;
 
-    let current = notes[0];
+    let current = { ...notes[0] };
 
     for (let i = 1; i < notes.length; i++) {
-      const next = notes[i];
+      const next = { ...notes[i] };
       const currentEnd = current.ticks + current.durationTicks;
       const nextEnd = next.ticks + next.durationTicks;
 
@@ -109,15 +129,15 @@ function filterNotes(trackNotes: Note[]) {
       }
 
       if (currentEnd >= next.ticks) {
-        const newDuration = next.ticks - current.ticks - 1;
-        current.durationTicks = Math.max(0, newDuration);
+        current.durationTicks = next.ticks - current.ticks - 1;
+        next.durationTicks = nextEnd - next.ticks;
       }
 
-      finalNotes.push(current);
+      finalNotes.push(current as any);
       current = next;
     }
 
-    finalNotes.push(current);
+    finalNotes.push(current as any);
   });
 
   return finalNotes;
