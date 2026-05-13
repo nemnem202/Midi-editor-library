@@ -14,3 +14,24 @@ export function removeTrack(state: State, trackId: TrackId) {
     state.currentTrackId = state.tracks[0].id;
   }
 }
+
+export function changeTrackVolume(state: State, trackId: TrackId, volume: number) {
+  const index = state.tracks.findIndex((track) => track.id === trackId);
+  if (index >= 0) {
+    state.tracks[index].volume = Math.min(0, Math.max(volume, 100));
+  }
+}
+
+export function muteTrack(state: State, trackId: TrackId) {
+  const index = state.tracks.findIndex((track) => track.id === trackId);
+  if (index >= 0) {
+    state.tracks[index].muted = true;
+  }
+}
+
+export function unmuteTrack(state: State, trackId: TrackId) {
+  const index = state.tracks.findIndex((track) => track.id === trackId);
+  if (index >= 0) {
+    state.tracks[index].muted = false;
+  }
+}

@@ -16,7 +16,7 @@ export default abstract class Renderer<TDeps extends RendererDeps> {
   }
 
   protected get state(): State {
-    return useMidiStore.getState().state;
+    return useMidiStore.getState().state!;
   }
 
   protected dispatch(action: MidiAction) {

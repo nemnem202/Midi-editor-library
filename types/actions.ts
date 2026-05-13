@@ -1,7 +1,9 @@
-import type { NoteIndex, State, TrackId } from "./instance";
+import type { NoteIndex, State, TrackId, TransportStatus } from "./instance";
 
 export enum Action {
   RENDER_ALL,
+
+  RESET_STATE,
 
   ADD_NOTE,
   REMOVE_NOTE,
@@ -20,17 +22,20 @@ export enum Action {
   SET_BPM,
   SET_SIGNATURE,
   SET_SUBDIVISION,
-  TOGGLE_PLAY,
 
   SET_TRANSPORT_START,
   SET_LOOP,
   SET_TOTAL_DURATION,
   SET_TRACKLIST_POSITION,
-  STOP,
+  SET_TRANSPORT_STATUS,
 
   CHANGE_CURRENT_TRACK,
   ADD_TRACK,
   REMOVE_TRACK,
+
+  CHANGE_TRACK_VOLUME,
+  MUTE_TRACK,
+  UNMUTE_TRACK,
 }
 
 export type MidiAction = (
@@ -59,7 +64,7 @@ export type MidiAction = (
   | { type: Action.SET_BPM; bpm: number }
   | { type: Action.SET_SIGNATURE; signature: [number, number] }
   | { type: Action.SET_SUBDIVISION; subdivision: [number, number] }
-  | { type: Action.TOGGLE_PLAY; force?: boolean }
+  | { type: Action.SET_TRANSPORT_STATUS; status: TransportStatus }
   | { type: Action.SET_TRANSPORT_START; start: number }
   | { type: Action.SET_LOOP; loop: { start: number; end: number } | null }
   | { type: Action.SET_TOTAL_DURATION; total: number }
@@ -67,5 +72,8 @@ export type MidiAction = (
   | { type: Action.ADD_TRACK; track: State["tracks"][number] }
   | { type: Action.REMOVE_TRACK; trackId: TrackId }
   | { type: Action.SET_TRACKLIST_POSITION; position: number }
-  | { type: Action.STOP }
+  | { type: Action.RESET_STATE }
+  | { type: Action.CHANGE_TRACK_VOLUME; volume: number; trackId: TrackId }
+  | { type: Action.MUTE_TRACK; trackId: TrackId }
+  | { type: Action.UNMUTE_TRACK; trackId: TrackId }
 ) & { skipHistory?: boolean };

@@ -10,7 +10,7 @@ export type Shortcut = {
 };
 
 export const getShortcuts = (): Shortcut[] => {
-  const { undo, redo, dispatch } = useMidiStore.getState();
+  const { undo, redo, dispatch, state } = useMidiStore.getState();
   return [
     { key: "z", ctrl: true, action: undo },
     { key: "z", ctrl: true, shift: true, action: redo },
@@ -18,13 +18,16 @@ export const getShortcuts = (): Shortcut[] => {
     {
       key: " ",
       action: () => {
-        dispatch({ type: Action.TOGGLE_PLAY });
+        dispatch({
+          type: Action.SET_TRANSPORT_STATUS,
+          status: state?.transport.status === "playing" ? "paused" : "playing",
+        });
       },
     },
     {
       key: "escape",
       action: () => {
-        dispatch({ type: Action.STOP });
+        dispatch({ type: Action.SET_TRANSPORT_STATUS, status: "reset" });
       },
     },
   ];

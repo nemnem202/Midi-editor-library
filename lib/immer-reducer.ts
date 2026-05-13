@@ -20,10 +20,15 @@ import {
   setTotalDuration,
   setTracklistPosition,
   setTransportStart,
-  togglePlay,
-  triggerStop,
 } from "../actions/transport";
-import { addTrack, changeCurrentTrack, removeTrack } from "../actions/track";
+import {
+  addTrack,
+  changeCurrentTrack,
+  changeTrackVolume,
+  muteTrack,
+  removeTrack,
+  unmuteTrack,
+} from "../actions/track";
 
 export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
   let track: Draft<State["tracks"][number]> | undefined;
@@ -86,14 +91,6 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       setSubdivision(draft.config, action.subdivision);
       break;
 
-    case Action.TOGGLE_PLAY:
-      togglePlay(draft.transport, action.force);
-      break;
-
-    case Action.STOP:
-      triggerStop(draft.transport);
-      break;
-
     case Action.SET_TRANSPORT_START:
       setTransportStart(draft.transport, action.start);
       break;
@@ -119,6 +116,20 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
     case Action.SET_TRACKLIST_POSITION:
       setTracklistPosition(draft.transport, action.position);
+      break;
+
+    case Action.CHANGE_TRACK_VOLUME:
+      changeTrackVolume(draft, action.volume, action.trackId);
+      break;
+
+    case Action.MUTE_TRACK:
+      muteTrack(draft, action.trackId);
+      break;
+    case Action.UNMUTE_TRACK:
+      unmuteTrack(draft, action.trackId);
+      break;
+    case Action.SET_TRANSPORT_STATUS:
+      draft.transport.status = action.status;
       break;
   }
 };

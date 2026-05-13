@@ -31,13 +31,15 @@ export interface Loop {
   end: Tick;
 }
 
+export type TransportStatus = "playing" | "paused" | "reset";
+
 export interface Transport {
   start: Tick;
   playbackPosition: Tick;
   currentMeasureIndex: number;
   loop: Loop | null;
   totalDuration: Tick;
-  isPlaying: boolean;
+  status: TransportStatus;
 }
 
 export type TrackId = number;
@@ -47,6 +49,8 @@ export interface Track {
   data: MidiData;
   instrument: InstrumentJSON["family"];
   channel: TrackJSON["channel"];
+  volume: number;
+  muted: boolean;
 }
 
 export interface MidiData {

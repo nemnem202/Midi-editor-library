@@ -90,10 +90,10 @@ export abstract class PianoRollEngine {
     this.colors = props.colors;
     this.strategy = props.strategy;
     this.isMobile = props.isMobile;
-    this.state = useMidiStore.getState().state;
+    this.state = useMidiStore.getState().state!;
 
     useMidiStore.subscribe((store) => {
-      this.state = store.state;
+      this.state = store.state!;
 
       if (this.state.queuedActions.size > 0) {
         this.state.queuedActions.forEach((a) => {
@@ -261,15 +261,11 @@ export abstract class PianoRollEngine {
       this.pianoKeyboardRenderer.draw();
     }
 
-    if (actions.has(Action.TOGGLE_PLAY)) {
+    if (actions.has(Action.SET_TRANSPORT_STATUS)) {
       if (!SoundEngine.get()?.isPlaying) {
         this.onSoundEngineTickUpdate();
         this.playheadRenderer.hidePlayhead();
       }
-    }
-
-    if (actions.has(Action.STOP)) {
-      this.onSoundEngineTickUpdate();
     }
   }
 

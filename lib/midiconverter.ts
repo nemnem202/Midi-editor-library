@@ -48,7 +48,7 @@ export function convertMidiFileToState(file: Midi): State {
       loop: null,
       start: 0,
       totalDuration: file.durationTicks,
-      isPlaying: false,
+      status: "paused",
       playbackPosition: 0,
       currentMeasureIndex: 0,
     },
@@ -86,6 +86,8 @@ function getTracks(file: Midi): Track[] {
       channel,
       instrument,
       id: index,
+      muted: false,
+      volume: 100,
       data: {
         capacity: filtered.length * 2,
         noteCount: filtered.length,

@@ -7,7 +7,7 @@ import { Action, type MidiAction } from "../types/actions";
 enableMapSet();
 
 interface MidiStore {
-  state: State;
+  state: State | null;
   undoStack: State[];
   redoStack: State[];
   dispatch: (action: MidiAction) => void;
@@ -34,12 +34,19 @@ function deepCloneState(state: State): State {
 }
 
 export const useMidiStore = create<MidiStore>((set, get) => ({
-  state: null as any,
+  state: null,
   undoStack: [],
   redoStack: [],
 
+  reset: () => {
+    set({
+      state: null,
+    });
+  },
+
   dispatch: (action) => {
     const { state, undoStack } = get();
+    if (!state) return;
 
     const isHistoryAction = !action.skipHistory;
 
@@ -65,6 +72,7 @@ export const useMidiStore = create<MidiStore>((set, get) => ({
 
   undo: () => {
     const { undoStack, state, redoStack } = get();
+    if (!state) return;
     if (undoStack.length === 0) return;
 
     const prevState = produce(undoStack[undoStack.length - 1], (draft) => {
@@ -81,6 +89,7 @@ export const useMidiStore = create<MidiStore>((set, get) => ({
 
   redo: () => {
     const { redoStack, state, undoStack } = get();
+    if (!state) return;
     if (redoStack.length === 0) return;
 
     const nextState = produce(redoStack[0], (draft) => {
