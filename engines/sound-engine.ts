@@ -148,27 +148,32 @@ export class TransportController {
   ) {}
 
   loadNewMidi() {
-    if (!this.audio.sequencer) return;
+    const state = useMidiStore.getState().state;
+    if (!state?.rawMidiBuffer) return;
 
-    const state = this.store.midiState ?? useMidiStore.getState().state;
-    if (!state?.rawMidiBuffer) {
-      return logger.warn("loadNewMidi: Buffer MIDI manquant dans le store");
-    }
+    const { rawMidiBuffer, config } = state;
 
-    const { rawMidiBuffer } = state;
+    // On nettoie tout avant de charger
+    this.audio.sequencer.pause();
+    this.audio.sequencer.currentTime = 0;
+
+    // Chargement du buffer
     const cleanBuffer = rawMidiBuffer.buffer.slice(
       rawMidiBuffer.byteOffset,
       rawMidiBuffer.byteOffset + rawMidiBuffer.byteLength
     );
 
-    this.audio.sequencer.pause();
-    this.audio.sequencer.songListData = [];
     this.audio.sequencer.loadNewSongList([
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
 
-    this.audio.initTempo = this.audio.sequencer.currentTempo.valueOf();
-    logger.success("Nouveau MIDI chargé dans le séquenceur");
+    // IMPORTANT : Synchroniser le BPM immédiatement après le chargement
+    // SpessaSynth utilise un playbackRate. On calcule le ratio :
+    // BPM voulu / BPM natif du fichier MIDI
+    const nativeBpm = this.audio.sequencer.currentTempo;
+    this.audio.sequencer.playbackRate = config.bpm / nativeBpm;
+
+    logger.success(`MIDI Loaded. Native BPM: ${nativeBpm}, Target BPM: ${config.bpm}`);
   }
 
   async play() {
@@ -235,8 +240,9 @@ export class TransportController {
     }
 
     if (flags.has(Action.SET_BPM)) {
-      this.audio.setPlaybackRate(this.store.midiState.config.bpm);
-      logger.info("new playback rate:", this.audio.sequencer.playbackRate);
+      const targetBpm = this.store.midiState.config.bpm;
+      const nativeMidiBpm = this.audio.sequencer.currentTempo;
+      this.audio.sequencer.playbackRate = targetBpm / nativeMidiBpm;
     }
 
     if (flags.has(Action.SET_TRANSPORT_START)) {
@@ -310,6 +316,13 @@ export default class SoundEngine {
     });
 
     instance = new SoundEngine(audio, notes, store, transport);
+
+    const currentState = useMidiStore.getState().state;
+    if (currentState?.rawMidiBuffer) {
+      logger.info("Midi data found on init, loading to sequencer...");
+      transport.loadNewMidi();
+    }
+
     SoundEngine.instance = instance;
     return instance;
   }

@@ -1,3 +1,4 @@
+import { Action } from "../types/actions";
 import type { State, Track } from "../types/instance";
 import { logger } from "./logger";
 import type { Midi } from "@tonejs/midi";
@@ -53,7 +54,7 @@ export function convertMidiFileToState(file: Midi): State {
       currentMeasureIndex: 0,
     },
     currentTrackId: 0,
-    queuedActions: new Set(),
+    queuedActions: new Set([Action.RESET_STATE]),
     tracks: tracks.map((track, index) => ({
       ...track,
       id: index,
