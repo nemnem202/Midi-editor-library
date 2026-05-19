@@ -5,11 +5,12 @@ import { logger } from "../lib/logger";
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
-import { convertTickToSeconds, getFirstTickInMeasure } from "../lib/utils";
+import { convertTickToSeconds, getCurrentMeasureIndex, getFirstTickInMeasure } from "../lib/utils";
 
 export class AudioCore {
   initTempo: number = 120;
-  private currentMeasure: number = 0;
+
+  public onMeasureUpdate: (measure: number) => void = () => {};
 
   private constructor(
     readonly synth: WorkerSynthesizer,
@@ -21,8 +22,8 @@ export class AudioCore {
         const markerText = new TextDecoder().decode(midiMsg.data);
         const match = markerText.match(/Bar_(\d+)/);
         if (match) {
-          logger.info("Current measure update", match[1]);
-          this.currentMeasure = parseInt(match[1], 10);
+          const measureIndex = parseInt(match[1], 10);
+          this.onMeasureUpdate(measureIndex);
         }
       }
     });
@@ -49,10 +50,6 @@ export class AudioCore {
     const sequencer = new Sequencer(synth);
 
     return new AudioCore(synth, sequencer);
-  }
-
-  get _currentMeasure() {
-    return this.currentMeasure;
   }
 
   get currentTime() {
@@ -140,12 +137,20 @@ export class StoreConnector {
 
 export class TransportController {
   private countInController: AbortController | null = null;
-
+  private _currentMeasure: number = 0;
   constructor(
     private readonly audio: AudioCore,
     private readonly store: StoreConnector,
     private readonly context: AudioContext
-  ) {}
+  ) {
+    this.audio.onMeasureUpdate = (m) => {
+      this._currentMeasure = m;
+    };
+  }
+
+  get currentMeasure() {
+    return this._currentMeasure;
+  }
 
   loadNewMidi() {
     const state = useMidiStore.getState().state;
@@ -156,6 +161,7 @@ export class TransportController {
     // On nettoie tout avant de charger
     this.audio.sequencer.pause();
     this.audio.sequencer.currentTime = 0;
+    this._currentMeasure = 0;
 
     // Chargement du buffer
     const cleanBuffer = rawMidiBuffer.buffer.slice(
@@ -230,6 +236,7 @@ export class TransportController {
     if (!this.audio.sequencer) return logger.warn("Séquenceur non prêt");
     this.audio.sequencer.currentTime = 0;
     this.audio.sequencer.pause();
+    this._currentMeasure = 0;
   }
 
   processActions(flags: Set<Action>) {
@@ -244,10 +251,15 @@ export class TransportController {
       const nativeMidiBpm = this.audio.sequencer.currentTempo;
       this.audio.sequencer.playbackRate = targetBpm / nativeMidiBpm;
     }
-
     if (flags.has(Action.SET_TRANSPORT_START)) {
       const { config, transport } = this.store.midiState;
       this.audio.seekTo(transport.start, config.bpm, config.ppq);
+      this._currentMeasure = getCurrentMeasureIndex(config.ppq, transport.start, {
+        top: config.signature[0],
+        bottom: config.signature[1],
+      });
+
+      logger.info(`Transport start: tick ${transport.start} -> Measure ${this._currentMeasure}`);
     }
 
     if (flags.has(Action.SET_TRANSPORT_STATUS)) {
@@ -332,7 +344,7 @@ export default class SoundEngine {
   }
 
   get currentMeasure() {
-    return this.audio._currentMeasure;
+    return this.transport.currentMeasure;
   }
 
   get currentTime() {
