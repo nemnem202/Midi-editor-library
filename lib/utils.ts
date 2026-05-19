@@ -56,7 +56,7 @@ export function getCurrentMeasureIndex(
   return Math.floor(tick / interval);
 }
 
-export function getCurrentMeasureFirstTick(
+export function getFirstTickInMeasure(
   ppq: number,
   tick: number,
   timeSignature: TimeSignatureSchema

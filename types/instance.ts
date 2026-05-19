@@ -70,6 +70,7 @@ export interface State {
   transport: Transport;
   queuedActions: Set<Action>;
   rawMidiBuffer: Uint8Array;
+  measuresStarts: Map<number, Tick>;
 }
 
 export interface TrackedHistoryState {

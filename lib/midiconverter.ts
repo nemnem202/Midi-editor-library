@@ -59,6 +59,7 @@ export function convertMidiFileToState(file: Midi): State {
       id: index,
     })),
     rawMidiBuffer: file.toArray(),
+    measuresStarts: extractBarTickMap(file),
   };
 }
 
@@ -143,4 +144,16 @@ function filterNotes(trackNotes: Note[]) {
   });
 
   return finalNotes;
+}
+
+function extractBarTickMap(midi: Midi): Map<number, number> {
+  const map = new Map<number, number>();
+  for (const event of midi.header.meta) {
+    const match = event.text.match(/Bar_(\d+)/);
+    if (match) {
+      map.set(parseInt(match[1], 10), event.ticks);
+    }
+  }
+  logger.info("Map", map);
+  return map;
 }
