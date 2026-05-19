@@ -8,7 +8,6 @@ import type { Note } from "@tonejs/midi/dist/Note";
 export async function getMidiFile(url: string): Promise<Midi> {
   const { Midi } = await import("@tonejs/midi");
   const midi = await Midi.fromUrl(url);
-  logger.info("Converted");
   return midi;
 }
 
@@ -28,7 +27,6 @@ export async function getMidiFileFromBuffer(data: any): Promise<Midi> {
 
   try {
     const midi = new Midi(finalBuffer);
-    logger.info("Converted from Buffer");
     return midi;
   } catch (e) {
     logger.error("Failed to parse MIDI binary data", e);
@@ -159,6 +157,5 @@ function extractBarTickMap(midi: Midi): Map<number, number> {
       map.set(parseInt(match[1], 10), event.ticks);
     }
   }
-  logger.info("Map", map);
   return map;
 }

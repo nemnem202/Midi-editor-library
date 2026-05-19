@@ -280,8 +280,6 @@ export class PlayerViewportRenderer extends ViewportRenderer {
       return;
     }
 
-    logger.info("min: ", minPitch, "max: ", maxPitch);
-
     const { width } = this.deps.app.screen;
     const TOTAL_KEYS = 128;
     const startPitch = minPitch - (minPitch % 12);

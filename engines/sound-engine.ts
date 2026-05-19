@@ -197,7 +197,6 @@ export class TransportController {
         this.audio.synth.noteOn(9, 76, 100);
         await this.delay(msPerBeat, signal);
       }
-      logger.info("Current time", this.audio.sequencer.currentTime);
       this.audio.sequencer.play();
     } catch (e) {
       if (e instanceof Error && e.message !== "aborted") {
@@ -214,7 +213,6 @@ export class TransportController {
     if (this.countInController) {
       this.countInController.abort();
       this.countInController = null;
-      logger.info("Décompte annulé");
     }
 
     this.audio.sequencer.pause();
@@ -358,7 +356,6 @@ export default class SoundEngine {
 
     const currentState = useMidiStore.getState().state;
     if (currentState?.rawMidiBuffer) {
-      logger.info("Midi data found on init, loading to sequencer...");
       transport.loadNewMidi();
     }
 

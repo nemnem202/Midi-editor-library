@@ -134,7 +134,6 @@ export class EditorNotesRenderer extends NotesRenderer {
 
     const { tracks, currentTrackId } = this.state;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
-    logger.info("Current track", currentTrack?.data);
     if (!currentTrack) return;
     const { noteCount, startTicks, durations, pitches, selectedNotes } = currentTrack.data;
     const { colors } = this.deps.engine;
@@ -241,7 +240,6 @@ export class EditorNotesRenderer extends NotesRenderer {
       lastGlobalY: e.globalY,
       selectedPool,
     };
-    logger.info("Note drag start");
   }
 
   public endNoteDrag(): void {
@@ -260,7 +258,6 @@ export class EditorNotesRenderer extends NotesRenderer {
     });
 
     this.dragState = null;
-    logger.info("Note drag end");
   }
 
   public deleteNote(_: FederatedPointerEvent) {}

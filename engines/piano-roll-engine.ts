@@ -117,7 +117,6 @@ export abstract class PianoRollEngine {
       this.setupResizeLogic();
       this.attachListeners();
       this.viewportRenderer.findOptimizedZoom();
-      logger.info(`Switching roll engine to: ${isMobile ? "Mobile" : "Desktop"}`);
     }
   }
 
@@ -150,7 +149,7 @@ export abstract class PianoRollEngine {
       try {
         this.soundEngine = SoundEngine.get();
       } catch (e) {
-        logger.info("PianoRoll: SoundEngine wait for user interaction.");
+        logger.warn("PianoRoll: SoundEngine wait for user interaction.");
       }
 
       this.app.stage.eventMode = "static";
@@ -165,7 +164,6 @@ export abstract class PianoRollEngine {
         this.drawAll();
       } else {
         this._resizeObserver = new ResizeObserver((entries) => {
-          logger.info("Resize observer triggerred");
           for (const entry of entries) {
             const { width, height } = entry.contentRect;
             if (width > 0 && height > 0) {
@@ -290,7 +288,6 @@ export abstract class PianoRollEngine {
   protected handleResize() {
     if (!this.hasInitialized) return;
     this.viewportRenderer.draw();
-    logger.info("Resize");
     this.drawAll();
   }
 
@@ -338,8 +335,6 @@ export abstract class PianoRollEngine {
         this.app?.destroy(false);
       } catch (e) {}
     }
-
-    logger.info("Renderer Engine destroyed (but Sound continues)");
   }
 
   private setupResizeLogic() {
@@ -349,7 +344,6 @@ export abstract class PianoRollEngine {
       this.drawAll();
     } else {
       this._resizeObserver = new ResizeObserver((entries) => {
-        logger.info("Resize observer triggered");
         for (const entry of entries) {
           const { width, height } = entry.contentRect;
           if (width > 0 && height > 0) {
