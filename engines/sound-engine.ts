@@ -318,13 +318,30 @@ import { convertTickToSeconds, getCurrentMeasureFirstTick } from "../lib/utils";
 // }
 
 export class AudioCore {
-  readonly synth: WorkerSynthesizer;
-  readonly sequencer: Sequencer;
+  //  synth: WorkerSynthesizer;
+  //  sequencer: Sequencer;
   initTempo: number = 120;
+  private currentMeasure: number = 0;
 
-  private constructor(synth: WorkerSynthesizer, sequencer: Sequencer) {
-    this.synth = synth;
-    this.sequencer = sequencer;
+  private constructor(
+    readonly synth: WorkerSynthesizer,
+    readonly sequencer: Sequencer
+  ) {
+    // this.synth = synth;
+    // this.sequencer = sequencer;
+
+    sequencer.eventHandler.addEvent("metaEvent", "eventId", (e) => {
+      const { event: midiMsg } = e;
+      if (midiMsg.statusByte === 0x06) {
+        const markerText = new TextDecoder().decode(midiMsg.data);
+        const match = markerText.match(/Bar_(\d+)/);
+
+        if (match) {
+          logger.info("Current measure update", match[1]);
+          this.currentMeasure = parseInt(match[1], 10);
+        }
+      }
+    });
   }
 
   static async init(context: AudioContext): Promise<AudioCore> {
@@ -348,6 +365,10 @@ export class AudioCore {
     const sequencer = new Sequencer(synth);
 
     return new AudioCore(synth, sequencer);
+  }
+
+  get _currentMeasure() {
+    return this.currentMeasure;
   }
 
   get currentTime() {
@@ -379,8 +400,12 @@ export class NoteTracker {
   private readonly notesOffSet = new Set<NoteOffCallback>();
 
   constructor(synth: WorkerSynthesizer) {
-    synth.eventHandler.addEvent("noteOn", "Id note on", (note) => this.notesOnSet.add(note));
-    synth.eventHandler.addEvent("noteOff", "Id note off", (note) => this.notesOffSet.add(note));
+    synth.eventHandler.addEvent("noteOn", "Id note on", (note: NoteOnCallback) =>
+      this.notesOnSet.add(note)
+    );
+    synth.eventHandler.addEvent("noteOff", "Id note off", (note: NoteOffCallback) =>
+      this.notesOffSet.add(note)
+    );
   }
 
   get notesOn() {
@@ -618,6 +643,10 @@ export default class SoundEngine {
   }
 
   // ── API publique ──────────────────────────────────────────────────────────
+
+  get currentMeasure() {
+    return this.audio._currentMeasure;
+  }
 
   get currentTime() {
     return this.audio.currentTime;
