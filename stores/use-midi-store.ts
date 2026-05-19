@@ -13,6 +13,7 @@ interface MidiStore {
   dispatch: (action: MidiAction) => void;
   undo: () => void;
   redo: () => void;
+  reset: () => void;
 }
 
 function deepCloneState(state: State): State {

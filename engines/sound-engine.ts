@@ -5,7 +5,7 @@ import { logger } from "../lib/logger";
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
-import { convertTickToSeconds, getFirstTickInMeasure } from "../lib/utils";
+import { convertTickToSeconds } from "../lib/utils";
 
 export class AudioCore {
   initTempo: number = 120;
@@ -154,15 +154,13 @@ export class TransportController {
     return this._currentMeasure;
   }
 
-  loadNewMidi() {
+  public loadNewMidi() {
     const state = useMidiStore.getState().state;
     if (!state?.rawMidiBuffer) return;
 
     const { rawMidiBuffer, config } = state;
 
     this.audio.sequencer.pause();
-    this.audio.sequencer.currentTime = 0;
-    this._currentMeasure = 0;
 
     const cleanBuffer = rawMidiBuffer.buffer.slice(
       rawMidiBuffer.byteOffset,
@@ -173,13 +171,16 @@ export class TransportController {
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
 
+    this.audio.sequencer.playbackRate = 1;
     const nativeBpm = this.audio.sequencer.currentTempo;
     this.audio.sequencer.playbackRate = config.bpm / nativeBpm;
 
-    logger.success(`MIDI Loaded. Native BPM: ${nativeBpm}, Target BPM: ${config.bpm}`);
+    logger.success(
+      `MIDI Loaded. Native BPM: ${nativeBpm}, Target BPM: ${config.bpm}, Playback Rate: ${this.audio.sequencer.playbackRate}, Calculated: ${this.audio.sequencer.playbackRate * nativeBpm}`
+    );
   }
 
-  async play() {
+  private async play() {
     if (!this.audio.sequencer) return logger.warn("Séquenceur non prêt");
 
     this.countInController?.abort();
@@ -196,7 +197,7 @@ export class TransportController {
         this.audio.synth.noteOn(9, 76, 100);
         await this.delay(msPerBeat, signal);
       }
-
+      logger.info("Current time", this.audio.sequencer.currentTime);
       this.audio.sequencer.play();
     } catch (e) {
       if (e instanceof Error && e.message !== "aborted") {
@@ -207,7 +208,7 @@ export class TransportController {
     }
   }
 
-  pause() {
+  private pause() {
     if (!this.audio.sequencer) return logger.warn("Séquenceur non prêt");
 
     if (this.countInController) {
@@ -216,17 +217,12 @@ export class TransportController {
       logger.info("Décompte annulé");
     }
 
+    this.audio.sequencer.pause();
     const state = this.store.midiState;
     if (state) {
       const { config, transport } = state;
-      const startTick = getFirstTickInMeasure(config.ppq, transport.start, {
-        top: config.signature[0],
-        bottom: config.signature[1],
-      });
-      this.audio.seekTo(startTick, config.bpm, config.ppq);
+      this.audio.seekTo(transport.start, config.bpm, config.ppq);
     }
-
-    requestAnimationFrame(() => this.audio.sequencer.pause());
   }
 
   resume() {
@@ -234,6 +230,14 @@ export class TransportController {
     this.audio.sequencer.currentTime = 0;
     this.audio.sequencer.pause();
     this._currentMeasure = 0;
+  }
+
+  resetState(): void {
+    this.countInController?.abort();
+    this.countInController = null;
+
+    this._currentMeasure = 0;
+    this._seekPending = false;
   }
 
   processActions(flags: Set<Action>) {
@@ -414,5 +418,26 @@ export default class SoundEngine {
 
   private stopProcessLoop() {
     if (this.processFrameId) cancelAnimationFrame(this.processFrameId);
+  }
+
+  static reset(): void {
+    SoundEngine.instance?.reset();
+  }
+
+  reset(): void {
+    this.audio.sequencer.pause();
+    this.audio.sequencer.currentTime = 0;
+
+    // 2. Notes
+    this.notes.clearAll();
+
+    this.transport.resetState();
+
+    this.store.consumeFlags();
+
+    const state = useMidiStore.getState().state;
+    if (state?.rawMidiBuffer) {
+      this.transport.loadNewMidi();
+    }
   }
 }

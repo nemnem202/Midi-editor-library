@@ -48,15 +48,6 @@ export function getNearestSubdivisionRoundedTick(
   return Math.round(tick / interval) * interval;
 }
 
-export function getFirstTickInMeasure(
-  ppq: number,
-  tick: number,
-  timeSignature: TimeSignatureSchema
-): number {
-  const interval = getSubdivisionTickInterval(ppq, [timeSignature.top, timeSignature.bottom]);
-  return Math.floor(tick / interval) * interval;
-}
-
 export function getFirstTickFromMeasureIndex(
   ppq: number,
   measureIndex: number,

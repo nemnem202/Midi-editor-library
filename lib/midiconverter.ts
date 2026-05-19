@@ -1,3 +1,4 @@
+import { ExerciseSchema } from "@/types/entities";
 import { Action } from "../types/actions";
 import type { State, Track } from "../types/instance";
 import { logger } from "./logger";
@@ -34,15 +35,18 @@ export async function getMidiFileFromBuffer(data: any): Promise<Midi> {
     throw e;
   }
 }
-export function convertMidiFileToState(file: Midi): State {
+export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): State {
   const ts = file.header.timeSignatures[0].timeSignature;
 
   const tracks = getTracks(file);
   return {
     config: {
-      bpm: file.header.tempos[0].bpm,
+      bpm: exercise.defaultConfig.bpm,
       ppq: file.header.ppq,
-      signature: [ts[0], ts[1]],
+      signature: [
+        exercise.defaultConfig.timeSignatureTop,
+        exercise.defaultConfig.timeSignatureBottom,
+      ],
       subdivision: [1, 128],
     },
     transport: {
