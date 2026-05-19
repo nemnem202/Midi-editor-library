@@ -5,7 +5,7 @@ import { logger } from "../lib/logger";
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
-import { convertTickToSeconds, getCurrentMeasureIndex, getFirstTickInMeasure } from "../lib/utils";
+import { convertTickToSeconds, getFirstTickInMeasure } from "../lib/utils";
 
 export class AudioCore {
   initTempo: number = 120;
@@ -138,12 +138,14 @@ export class StoreConnector {
 export class TransportController {
   private countInController: AbortController | null = null;
   private _currentMeasure: number = 0;
+  private _seekPending: boolean = false;
   constructor(
     private readonly audio: AudioCore,
     private readonly store: StoreConnector,
     private readonly context: AudioContext
   ) {
     this.audio.onMeasureUpdate = (m) => {
+      if (this._seekPending) return;
       this._currentMeasure = m;
     };
   }
@@ -158,12 +160,10 @@ export class TransportController {
 
     const { rawMidiBuffer, config } = state;
 
-    // On nettoie tout avant de charger
     this.audio.sequencer.pause();
     this.audio.sequencer.currentTime = 0;
     this._currentMeasure = 0;
 
-    // Chargement du buffer
     const cleanBuffer = rawMidiBuffer.buffer.slice(
       rawMidiBuffer.byteOffset,
       rawMidiBuffer.byteOffset + rawMidiBuffer.byteLength
@@ -173,9 +173,6 @@ export class TransportController {
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
 
-    // IMPORTANT : Synchroniser le BPM immédiatement après le chargement
-    // SpessaSynth utilise un playbackRate. On calcule le ratio :
-    // BPM voulu / BPM natif du fichier MIDI
     const nativeBpm = this.audio.sequencer.currentTempo;
     this.audio.sequencer.playbackRate = config.bpm / nativeBpm;
 
@@ -251,15 +248,41 @@ export class TransportController {
       const nativeMidiBpm = this.audio.sequencer.currentTempo;
       this.audio.sequencer.playbackRate = targetBpm / nativeMidiBpm;
     }
-    if (flags.has(Action.SET_TRANSPORT_START)) {
-      const { config, transport } = this.store.midiState;
-      this.audio.seekTo(transport.start, config.bpm, config.ppq);
-      this._currentMeasure = getCurrentMeasureIndex(config.ppq, transport.start, {
-        top: config.signature[0],
-        bottom: config.signature[1],
-      });
+    if (
+      flags.has(Action.SET_TRANSPORT_START) ||
+      flags.has(Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX)
+    ) {
+      const { config, transport, measuresStarts } = this.store.midiState;
 
-      logger.info(`Transport start: tick ${transport.start} -> Measure ${this._currentMeasure}`);
+      this._seekPending = true;
+      // 1. Déplacer la tête de lecture audio
+      this.audio.seekTo(transport.start, config.bpm, config.ppq);
+
+      // 2. Trouver l'index de la mesure la plus proche dans la Map
+      let closestMeasure = 0;
+      let minDiff = Number.MAX_VALUE;
+
+      // On parcourt toutes les mesures enregistrées pour trouver la plus proche du tick actuel
+      for (const [mIndex, mTick] of measuresStarts.entries()) {
+        const diff = Math.abs(mTick - transport.start);
+
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestMeasure = mIndex;
+        }
+
+        if (minDiff === 0) break;
+      }
+
+      this._currentMeasure = closestMeasure;
+
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            this._seekPending = false;
+          })
+        )
+      );
     }
 
     if (flags.has(Action.SET_TRANSPORT_STATUS)) {

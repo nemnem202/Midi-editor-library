@@ -131,5 +131,8 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
     case Action.SET_TRANSPORT_STATUS:
       draft.transport.status = action.status;
       break;
+
+    case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
+      draft.transport.start = draft.measuresStarts.get(action.measureIndex) ?? 0;
   }
 };

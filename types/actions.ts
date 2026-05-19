@@ -24,6 +24,7 @@ export enum Action {
   SET_SUBDIVISION,
 
   SET_TRANSPORT_START,
+  SET_TRANSPORT_START_FROM_MEASURE_INDEX,
   SET_LOOP,
   SET_TOTAL_DURATION,
   SET_TRACKLIST_POSITION,
@@ -76,4 +77,5 @@ export type MidiAction = (
   | { type: Action.CHANGE_TRACK_VOLUME; volume: number; trackId: TrackId }
   | { type: Action.MUTE_TRACK; trackId: TrackId }
   | { type: Action.UNMUTE_TRACK; trackId: TrackId }
+  | { type: Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX; measureIndex: number }
 ) & { skipHistory?: boolean };
