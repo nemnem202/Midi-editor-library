@@ -8,8 +8,6 @@ import { useMidiStore } from "../stores/use-midi-store";
 import { convertTickToSeconds } from "../lib/utils";
 
 export class AudioCore {
-  initTempo: number = 120;
-
   public onMeasureUpdate: (measure: number) => void = () => {};
 
   private constructor(
@@ -167,17 +165,14 @@ export class TransportController {
       rawMidiBuffer.byteOffset + rawMidiBuffer.byteLength
     );
 
+    logger.info(
+      "Current tempo: ",
+      this.audio.sequencer.playbackRate * this.audio.sequencer.currentTempo
+    );
+
     this.audio.sequencer.loadNewSongList([
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
-
-    this.audio.sequencer.playbackRate = 1;
-    const nativeBpm = this.audio.sequencer.currentTempo;
-    this.audio.sequencer.playbackRate = config.bpm / nativeBpm;
-
-    logger.success(
-      `MIDI Loaded. Native BPM: ${nativeBpm}, Target BPM: ${config.bpm}, Playback Rate: ${this.audio.sequencer.playbackRate}, Calculated: ${this.audio.sequencer.playbackRate * nativeBpm}`
-    );
   }
 
   private async play() {
@@ -247,8 +242,7 @@ export class TransportController {
 
     if (flags.has(Action.SET_BPM)) {
       const targetBpm = this.store.midiState.config.bpm;
-      const nativeMidiBpm = this.audio.sequencer.currentTempo;
-      this.audio.sequencer.playbackRate = targetBpm / nativeMidiBpm;
+      this.audio.sequencer.playbackRate = targetBpm / this.audio.sequencer.currentTempo;
     }
     if (
       flags.has(Action.SET_TRANSPORT_START) ||
@@ -257,14 +251,11 @@ export class TransportController {
       const { config, transport, measuresStarts } = this.store.midiState;
 
       this._seekPending = true;
-      // 1. Déplacer la tête de lecture audio
       this.audio.seekTo(transport.start, config.bpm, config.ppq);
-
-      // 2. Trouver l'index de la mesure la plus proche dans la Map
       let closestMeasure = 0;
+
       let minDiff = Number.MAX_VALUE;
 
-      // On parcourt toutes les mesures enregistrées pour trouver la plus proche du tick actuel
       for (const [mIndex, mTick] of measuresStarts.entries()) {
         const diff = Math.abs(mTick - transport.start);
 

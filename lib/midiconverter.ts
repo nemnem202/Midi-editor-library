@@ -34,7 +34,7 @@ export async function getMidiFileFromBuffer(data: any): Promise<Midi> {
   }
 }
 export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): State {
-  const ts = file.header.timeSignatures[0].timeSignature;
+  file.header.setTempo(exercise.defaultConfig.bpm);
 
   const tracks = getTracks(file);
   return {
