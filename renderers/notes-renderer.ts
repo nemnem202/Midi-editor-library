@@ -12,6 +12,8 @@ import { Action } from "../types/actions";
 import { Event } from "../types/events";
 import { logger } from "../lib/logger";
 
+const MIN_NOTE_DISPLAYED_SIZE = 5;
+
 export class NoteSprite extends Sprite {
   constructor(
     public readonly index: number,
@@ -93,6 +95,11 @@ export class PlayerNotesRenderer extends NotesRenderer {
       sprite.x = noteWidth * pitches[i];
       sprite.width = noteWidth;
       sprite.height = durations[i];
+
+      if (durations[i] < MIN_NOTE_DISPLAYED_SIZE) {
+        sprite.height = MIN_NOTE_DISPLAYED_SIZE;
+        sprite.y -= MIN_NOTE_DISPLAYED_SIZE - durations[i];
+      }
       sprite.tint = colors.primary;
     }
 

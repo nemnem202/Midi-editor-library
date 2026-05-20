@@ -496,26 +496,47 @@ export class PlayerEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
+  // protected onSoundEngineTickUpdate() {
+  //   if (!this.soundEngine) this.soundEngine = SoundEngine.get();
+  //   if (!this.soundEngine) return logger.error("no sound engine");
+  //   const { currentTime, currentTempo, notesEvents } = this.soundEngine;
+
+  //   const { config, currentTrackId, tracks } = this.state;
+  //   const currentTick = convertSecondsToTick(currentTime, currentTempo, config.ppq);
+
+  //   this.playheadRenderer.updatePlayhead(currentTick);
+
+  //   const notesEventsCurrentTrack = notesEvents.filter(
+  //     (note) => note.channel === tracks[currentTrackId].channel
+  //   );
+
+  //   if (notesEventsCurrentTrack.length > 0) {
+  //     this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);
+  //     this.soundEngine.clearNotesEvents();
+  //   }
+  // }
+
   protected onSoundEngineTickUpdate() {
     if (!this.soundEngine) this.soundEngine = SoundEngine.get();
-    if (!this.soundEngine) return logger.error("no sound engine");
-    const { currentTime, currentTempo, notesOn, notesOff } = this.soundEngine;
+    if (!this.soundEngine) return;
 
+    const { currentTime, currentTempo, notesEvents } = this.soundEngine;
     const { config, currentTrackId, tracks } = this.state;
     const currentTick = convertSecondsToTick(currentTime, currentTempo, config.ppq);
 
     this.playheadRenderer.updatePlayhead(currentTick);
 
-    const notesOnCurrentTrack = Array.from(notesOn).filter(
-      (note) => note.channel === tracks[currentTrackId].channel
-    );
-    const notesOffCurrentTrack = Array.from(notesOff).filter(
+    const notesEventsCurrentTrack = notesEvents.filter(
       (note) => note.channel === tracks[currentTrackId].channel
     );
 
-    this.pianoKeyboardRenderer.colorNotes(notesOnCurrentTrack, notesOffCurrentTrack);
-    this.soundEngine.clearNotesOn();
-    this.soundEngine.clearNotesOff();
+    if (notesEventsCurrentTrack.length > 0) {
+      this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);
+      this.soundEngine.clearNotesEvents();
+    } else {
+      // Aucun event cette frame → éteindre toutes les touches actives
+      this.pianoKeyboardRenderer.colorNotes([]);
+    }
   }
 }
 

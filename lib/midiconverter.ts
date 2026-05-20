@@ -67,22 +67,23 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
 }
 
 function getTracks(file: Midi): Track[] {
-  const tracksByChannel = new Map<number, { instrument: string; notes: Note[] }>();
+  const tracksByFamily = new Map<number, { instrument: string; notes: Note[]; channel: number }>();
 
   for (const track of file.tracks) {
     const channel = track.channel;
 
-    if (tracksByChannel.has(channel)) {
-      tracksByChannel.get(channel)!.notes.push(...track.notes);
+    if (tracksByFamily.has(channel)) {
+      tracksByFamily.get(channel)!.notes.push(...track.notes);
     } else {
-      tracksByChannel.set(channel, {
-        instrument: track.instrument.name,
+      tracksByFamily.set(channel, {
+        instrument: `${track.instrument.family} (${track.instrument.name})`,
         notes: [...track.notes],
+        channel,
       });
     }
   }
 
-  return Array.from(tracksByChannel.entries()).map(([channel, { instrument, notes }], index) => {
+  return Array.from(tracksByFamily.entries()).map(([channel, { instrument, notes }], index) => {
     const filtered = filterNotes(notes);
     filtered.sort((a, b) => a.ticks - b.ticks);
 

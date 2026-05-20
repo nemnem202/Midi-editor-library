@@ -1,7 +1,7 @@
 import { Sequencer, WorkerSynthesizer } from "spessasynth_lib";
 import { Action, type MidiAction } from "../types/actions";
 import { logger } from "../lib/logger";
-// @ts-expect-error
+// @ts-ignore
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../types/instance";
 import { useMidiStore } from "../stores/use-midi-store";
@@ -73,36 +73,46 @@ export class AudioCore {
 
 export type NoteOnCallback = { midiNote: number; channel: number; velocity: number };
 export type NoteOffCallback = { midiNote: number; channel: number };
+export enum NoteEventKind {
+  On,
+  Off,
+}
+
+export type NoteEvent = (NoteOnCallback | NoteOffCallback) & { type: NoteEventKind };
 
 export class NoteTracker {
-  private readonly notesOnSet = new Set<NoteOnCallback>();
-  private readonly notesOffSet = new Set<NoteOffCallback>();
+  private readonly _notesEvents: NoteEvent[] = [];
+  private activeMidiNotes = new Set<string>();
 
+  private noteKey(midiNote: number, channel: number) {
+    return `${channel}:${midiNote}`;
+  }
   constructor(synth: WorkerSynthesizer) {
-    synth.eventHandler.addEvent("noteOn", "Id note on", (note: NoteOnCallback) =>
-      this.notesOnSet.add(note)
-    );
-    synth.eventHandler.addEvent("noteOff", "Id note off", (note: NoteOffCallback) =>
-      this.notesOffSet.add(note)
-    );
+    synth.eventHandler.addEvent("noteOn", "Id note on", (note: NoteOnCallback) => {
+      this._notesEvents.push({ ...note, type: NoteEventKind.On });
+      this.activeMidiNotes.add(this.noteKey(note.midiNote, note.channel));
+    });
+
+    synth.eventHandler.addEvent("noteOff", "Id note off", (note: NoteOffCallback) => {
+      const key = this.noteKey(note.midiNote, note.channel);
+      if (this.activeMidiNotes.has(key)) {
+        this._notesEvents.push({ ...note, type: NoteEventKind.Off });
+        this.activeMidiNotes.delete(key);
+      }
+    });
   }
 
-  get notesOn() {
-    return this.notesOnSet;
-  }
-  get notesOff() {
-    return this.notesOffSet;
+  get notesEvents() {
+    return this._notesEvents;
   }
 
-  clearNotesOn() {
-    this.notesOnSet.clear();
+  clearNotesEvents() {
+    this._notesEvents.length = 0;
   }
-  clearNotesOff() {
-    this.notesOffSet.clear();
-  }
-  clearAll() {
-    this.notesOnSet.clear();
-    this.notesOffSet.clear();
+
+  resetNotesEvents() {
+    this._notesEvents.length = 0;
+    this.activeMidiNotes.clear();
   }
 }
 
@@ -372,18 +382,12 @@ export default class SoundEngine {
     return this.audio.isPlaying;
   }
 
-  get notesOn() {
-    return this.notes.notesOn;
-  }
-  get notesOff() {
-    return this.notes.notesOff;
+  get notesEvents() {
+    return this.notes.notesEvents;
   }
 
-  clearNotesOn() {
-    this.notes.clearNotesOn();
-  }
-  clearNotesOff() {
-    this.notes.clearNotesOff();
+  clearNotesEvents() {
+    return this.notes.clearNotesEvents();
   }
 
   updateMidiEvents() {}
@@ -393,7 +397,7 @@ export default class SoundEngine {
 
     this.audio.sequencer.pause();
     this.audio.sequencer.currentTime = 0;
-    this.notes.clearAll();
+    this.notes.resetNotesEvents();
   }
 
   private startProcessLoop() {
@@ -416,8 +420,7 @@ export default class SoundEngine {
     this.audio.sequencer.pause();
     this.audio.sequencer.currentTime = 0;
 
-    // 2. Notes
-    this.notes.clearAll();
+    this.notes.resetNotesEvents();
 
     this.transport.resetState();
 
