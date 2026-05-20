@@ -1,6 +1,6 @@
 import { ExerciseSchema } from "@/types/entities";
 import { Action } from "../types/actions";
-import type { State, Track } from "../types/instance";
+import type { Loop, State, Track } from "../types/instance";
 import { logger } from "./logger";
 import type { Midi } from "@tonejs/midi";
 import type { Note } from "@tonejs/midi/dist/Note";
@@ -100,9 +100,15 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
         exercise.defaultConfig.timeSignatureBottom,
       ],
       subdivision: [1, 128],
+      loop: extractLoop(file),
+      bpmPractice: 0,
+      countIn: true,
+      currentMeasureOverline: true,
+      repeats: 0,
+      transposition: 0,
+      transpositionPractice: 0,
     },
     transport: {
-      loop: null,
       start: 0,
       totalDuration: file.durationTicks,
       status: "paused",
@@ -177,79 +183,6 @@ function getTracks(file: Midi): Track[] {
   );
 }
 
-// export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): State {
-//   file.header.setTempo(exercise.defaultConfig.bpm);
-
-//   const tracks = getTracks(file);
-//   return {
-//     config: {
-//       bpm: exercise.defaultConfig.bpm,
-//       ppq: file.header.ppq,
-//       signature: [
-//         exercise.defaultConfig.timeSignatureTop,
-//         exercise.defaultConfig.timeSignatureBottom,
-//       ],
-//       subdivision: [1, 128],
-//     },
-//     transport: {
-//       loop: null,
-//       start: 0,
-//       totalDuration: file.durationTicks,
-//       status: "paused",
-//       playbackPosition: 0,
-//       currentMeasureIndex: 0,
-//     },
-//     currentTrackId: 0,
-//     queuedActions: new Set([Action.RESET_STATE]),
-//     tracks: tracks.map((track, index) => ({
-//       ...track,
-//       id: index,
-//     })),
-//     rawMidiBuffer: file.toArray(),
-//     measuresStarts: extractBarTickMap(file),
-//   };
-// }
-
-// function getTracks(file: Midi): Track[] {
-//   const tracksByFamily = new Map<number, { instrument: string; notes: Note[]; channel: number }>();
-
-//   for (const track of file.tracks) {
-//     const channel = track.channel;
-
-//     if (tracksByFamily.has(channel)) {
-//       tracksByFamily.get(channel)!.notes.push(...track.notes);
-//     } else {
-//       tracksByFamily.set(channel, {
-//         instrument: `${track.instrument.family}`,
-//         notes: [...track.notes],
-//         channel,
-//       });
-//     }
-//   }
-
-//   return Array.from(tracksByFamily.entries()).map(([channel, { instrument, notes }], index) => {
-//     const filtered = filterNotes(notes);
-//     filtered.sort((a, b) => a.ticks - b.ticks);
-
-//     return {
-//       channel,
-//       instrument,
-//       id: index,
-//       muted: false,
-//       volume: 100,
-//       data: {
-//         capacity: filtered.length * 2,
-//         noteCount: filtered.length,
-//         pitches: new Uint8Array(filtered.map((n) => n.midi)),
-//         selectedNotes: new Uint8Array(filtered.length),
-//         velocities: new Uint8Array(filtered.map((n) => Math.round(n.velocity * 100))),
-//         startTicks: new Uint32Array(filtered.map((n) => n.ticks)),
-//         durations: new Uint32Array(filtered.map((n) => n.durationTicks)),
-//       },
-//     };
-//   });
-// }
-
 function filterNotes(trackNotes: Note[]) {
   const notesByPitch: Record<number, typeof trackNotes> = {};
   trackNotes.forEach((n) => {
@@ -303,6 +236,23 @@ function extractBarTickMap(midi: Midi): Map<number, number> {
     }
   }
   return map;
+}
+
+function extractLoop(midi: Midi): Loop | null {
+  const loopStart = midi.header.meta.find((event) => event.text === "LoopStart");
+  const loopEnd = midi.header.meta.find((event) => event.text === "LoopEnd");
+
+  if (loopStart && loopEnd) {
+    const loop = {
+      currentRepeatIndex: 0,
+      start: loopStart.ticks,
+      end: loopEnd.ticks,
+    };
+    logger.info("Loop found: ", loop);
+    return loop;
+  } else {
+    return null;
+  }
 }
 
 function remapMidiFileChannels(file: Midi, tracks: Track[]): void {

@@ -12,16 +12,20 @@ export class AudioCore {
 
   private constructor(
     readonly synth: WorkerSynthesizer,
-    readonly sequencer: Sequencer
+    readonly sequencer: Sequencer,
+    public onLoopEnd: () => void
   ) {
     sequencer.eventHandler.addEvent("metaEvent", "eventId", (e) => {
       const { event: midiMsg } = e;
       if (midiMsg.statusByte === 0x06) {
         const markerText = new TextDecoder().decode(midiMsg.data);
-        const match = markerText.match(/Bar_(\d+)/);
-        if (match) {
-          const measureIndex = parseInt(match[1], 10);
-          this.onMeasureUpdate(measureIndex);
+        const bar_match = markerText.match(/Bar_(\d+)/);
+        if (bar_match) {
+          const measureIndex = parseInt(bar_match[1], 10);
+          return this.onMeasureUpdate(measureIndex);
+        } else if (markerText === "LoopEnd") {
+          return this.onLoopEnd();
+        } else if (markerText === "LoopStart") {
         }
       }
     });
@@ -47,7 +51,7 @@ export class AudioCore {
 
     const sequencer = new Sequencer(synth);
 
-    return new AudioCore(synth, sequencer);
+    return new AudioCore(synth, sequencer, () => {});
   }
 
   get currentTime() {
@@ -69,6 +73,12 @@ export class AudioCore {
   seekTo(tick: number, bpm: number, ppq: number) {
     this.sequencer.currentTime = convertTickToSeconds(tick, bpm, ppq);
   }
+
+  allNotesOff() {
+    for (let channel = 0; channel < 16; channel++) {
+      this.synth.controllerChange(channel, 123, 0);
+    }
+  }
 }
 
 export type NoteOnCallback = { midiNote: number; channel: number; velocity: number };
@@ -87,7 +97,7 @@ export class NoteTracker {
   private noteKey(midiNote: number, channel: number) {
     return `${channel}:${midiNote}`;
   }
-  constructor(synth: WorkerSynthesizer) {
+  constructor(private synth: WorkerSynthesizer) {
     synth.eventHandler.addEvent("noteOn", "Id note on", (note: NoteOnCallback) => {
       this._notesEvents.push({ ...note, type: NoteEventKind.On });
       this.activeMidiNotes.add(this.noteKey(note.midiNote, note.channel));
@@ -147,6 +157,7 @@ export class TransportController {
   private countInController: AbortController | null = null;
   private _currentMeasure: number = 0;
   private _seekPending: boolean = false;
+  private _loopJumping: boolean = false;
   constructor(
     private readonly audio: AudioCore,
     private readonly store: StoreConnector,
@@ -162,6 +173,10 @@ export class TransportController {
     return this._currentMeasure;
   }
 
+  get isLoopJumping() {
+    return this._loopJumping;
+  }
+
   public loadNewMidi() {
     const state = useMidiStore.getState().state;
     if (!state?.rawMidiBuffer) return;
@@ -175,14 +190,24 @@ export class TransportController {
       rawMidiBuffer.byteOffset + rawMidiBuffer.byteLength
     );
 
-    logger.info(
-      "Current tempo: ",
-      this.audio.sequencer.playbackRate * this.audio.sequencer.currentTempo
-    );
-
     this.audio.sequencer.loadNewSongList([
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
+
+    if (config.loop) {
+      this.audio.sequencer.loopCount = Infinity;
+    }
+
+    this.audio.onLoopEnd = () => {
+      if (!config.loop) return;
+      this._loopJumping = true;
+      this.audio.seekTo(config.loop.start, config.bpm, config.ppq);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          this._loopJumping = false;
+        })
+      );
+    };
   }
 
   private async play() {
@@ -349,6 +374,10 @@ export default class SoundEngine {
     const transport = new TransportController(audio, store, SoundEngine.context);
 
     audio.sequencer.eventHandler.addEvent("songEnded", "Id sequencer", () => {
+      if (transport.isLoopJumping) {
+        logger.info("songEnded ignoré (loop en cours)");
+        return;
+      }
       transport.resume();
       store.dispatch({ type: Action.SET_TRANSPORT_STATUS, status: "reset" });
     });

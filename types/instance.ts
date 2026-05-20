@@ -31,11 +31,13 @@ export interface Config {
   bpmPractice: number;
   transpositionPractice: number;
   currentMeasureOverline: boolean;
+  loop: Loop | null;
 }
 
 export interface Loop {
   start: Tick;
   end: Tick;
+  currentRepeatIndex: number;
 }
 
 export type TransportStatus = "playing" | "paused" | "reset";
@@ -44,7 +46,6 @@ export interface Transport {
   start: Tick;
   playbackPosition: Tick;
   currentMeasureIndex: number;
-  loop: Loop | null;
   totalDuration: Tick;
   status: TransportStatus;
 }
