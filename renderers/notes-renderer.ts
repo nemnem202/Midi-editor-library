@@ -218,7 +218,9 @@ export class EditorNotesRenderer extends NotesRenderer {
     if (!(target instanceof NoteSprite) || Number.isNaN(target.index)) return;
 
     const { tracks, currentTrackId } = this.state;
-    const { selectedNotes } = tracks[currentTrackId].data;
+    const currentTrack = tracks.find((t) => t.id === currentTrackId);
+    if (!currentTrack) return;
+    const { selectedNotes } = currentTrack.data;
 
     const localOffset = target.toLocal(e.global);
     const selectedPool: NoteSprite[] = [];

@@ -390,6 +390,10 @@ export default class SoundEngine {
     return this.notes.clearNotesEvents();
   }
 
+  public changeChannelVolume(channel: number, volume: number) {
+    this.audio.synth.controllerChange(channel, 7, volume);
+  }
+
   updateMidiEvents() {}
 
   private stopAndCleanup() {

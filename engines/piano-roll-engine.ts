@@ -384,36 +384,7 @@ export class PlayerEngine extends PianoRollEngine {
         this.app,
 
         {
-          default: {
-            // onAnyPointerEvent: () => this.cursorRenderer.setCursor("default"),
-            // onAltDrag: {
-            //   onStart: () => this.cursorRenderer.setCursor("grabbing").lock("drag"),
-            //   onMove: (e) => this.viewportRenderer.tryPan(e.original, e.lastPos),
-            //   onEnd: (_e) => {
-            //     document.body.style.cursor = "default";
-            //   },
-            // },
-            // onLeftClick: (e) => {
-            //   this.selectionRenderer.unselectAll();
-            //   this.notesRenderer.addNote(e.original);
-            //   this.playheadRenderer.setStart(e.original);
-            // },
-            // onRightClick: (e) => {
-            //   this.menuRenderer.drawMenu(e.original);
-            // },
-            // onWheelUp: (e) => {
-            //   this.viewportRenderer.handleZoom(e.original);
-            // },
-            // onWheelDown: (e) => {
-            //   this.viewportRenderer.handleZoom(e.original);
-            // },
-            // onCtrlWheelUp: (e) => {
-            //   this.viewportRenderer.handleZoom(e.original);
-            // },
-            // onCtrlWheelDown: (e) => {
-            //   this.viewportRenderer.handleZoom(e.original);
-            // },
-          },
+          default: {},
 
           Note: {},
 
@@ -496,26 +467,6 @@ export class PlayerEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  // protected onSoundEngineTickUpdate() {
-  //   if (!this.soundEngine) this.soundEngine = SoundEngine.get();
-  //   if (!this.soundEngine) return logger.error("no sound engine");
-  //   const { currentTime, currentTempo, notesEvents } = this.soundEngine;
-
-  //   const { config, currentTrackId, tracks } = this.state;
-  //   const currentTick = convertSecondsToTick(currentTime, currentTempo, config.ppq);
-
-  //   this.playheadRenderer.updatePlayhead(currentTick);
-
-  //   const notesEventsCurrentTrack = notesEvents.filter(
-  //     (note) => note.channel === tracks[currentTrackId].channel
-  //   );
-
-  //   if (notesEventsCurrentTrack.length > 0) {
-  //     this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);
-  //     this.soundEngine.clearNotesEvents();
-  //   }
-  // }
-
   protected onSoundEngineTickUpdate() {
     if (!this.soundEngine) this.soundEngine = SoundEngine.get();
     if (!this.soundEngine) return;
@@ -526,15 +477,17 @@ export class PlayerEngine extends PianoRollEngine {
 
     this.playheadRenderer.updatePlayhead(currentTick);
 
+    const currentTrack = tracks.find((t) => t.id === currentTrackId);
+    if (!currentTrack) return;
+
     const notesEventsCurrentTrack = notesEvents.filter(
-      (note) => note.channel === tracks[currentTrackId].channel
+      (note) => note.channel === currentTrack.channel
     );
 
     if (notesEventsCurrentTrack.length > 0) {
       this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);
       this.soundEngine.clearNotesEvents();
     } else {
-      // Aucun event cette frame → éteindre toutes les touches actives
       this.pianoKeyboardRenderer.colorNotes([]);
     }
   }
@@ -697,7 +650,5 @@ export class EditorEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  protected onSoundEngineTickUpdate(): void {
-    // this.playheadRenderer.updatePlayhead(tick);
-  }
+  protected onSoundEngineTickUpdate(): void {}
 }

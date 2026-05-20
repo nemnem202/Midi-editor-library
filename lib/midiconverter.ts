@@ -4,6 +4,11 @@ import type { State, Track } from "../types/instance";
 import { logger } from "./logger";
 import type { Midi } from "@tonejs/midi";
 import type { Note } from "@tonejs/midi/dist/Note";
+import {
+  getFamilyFromInstrumentNumber,
+  MidiInstrumentFamily,
+  MidiInstrumentNumber,
+} from "../types/instruments";
 
 export async function getMidiFile(url: string): Promise<Midi> {
   const { Midi } = await import("@tonejs/midi");
@@ -33,10 +38,59 @@ export async function getMidiFileFromBuffer(data: any): Promise<Midi> {
     throw e;
   }
 }
+
+// Hiérarchie des familles : index plus bas = priorité plus haute
+export const FAMILY_HIERARCHY: MidiInstrumentFamily[] = [
+  MidiInstrumentFamily.Piano,
+  MidiInstrumentFamily.Guitar,
+  MidiInstrumentFamily.SynthLead,
+  MidiInstrumentFamily.Organ,
+  MidiInstrumentFamily.Bass,
+  MidiInstrumentFamily.Strings,
+  MidiInstrumentFamily.Ensemble,
+  MidiInstrumentFamily.Brass,
+  MidiInstrumentFamily.Reed,
+  MidiInstrumentFamily.Pipe,
+  MidiInstrumentFamily.ChromaticPercussion,
+  MidiInstrumentFamily.SynthPad,
+  MidiInstrumentFamily.SynthEffects,
+  MidiInstrumentFamily.Ethnic,
+  MidiInstrumentFamily.Percussive,
+  MidiInstrumentFamily.SoundEffects,
+];
+
+export function getFamilyPriority(family: MidiInstrumentFamily): number {
+  const idx = FAMILY_HIERARCHY.indexOf(family);
+  return idx === -1 ? FAMILY_HIERARCHY.length : idx;
+}
+
+/**
+ * Détermine le currentTrackId selon la hiérarchie :
+ * 1. On groupe les tracks par famille
+ * 2. On prend la famille la plus haute dans la hiérarchie
+ * 3. En cas d'égalité de famille, on prend le track avec le plus de notes
+ */
+export function resolveCurrentTrackId(tracks: Track[]): MidiInstrumentNumber {
+  if (tracks.length === 0) return 0 as MidiInstrumentNumber;
+
+  return tracks.reduce((best, track) => {
+    const bestPriority = getFamilyPriority(best.family);
+    const trackPriority = getFamilyPriority(track.family);
+
+    if (trackPriority < bestPriority) return track;
+    if (trackPriority === bestPriority && track.data.noteCount > best.data.noteCount) return track;
+    return best;
+  }).id;
+}
+
 export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): State {
   file.header.setTempo(exercise.defaultConfig.bpm);
 
   const tracks = getTracks(file);
+  remapMidiFileChannels(file, tracks);
+
+  const currentTrackId = resolveCurrentTrackId(tracks);
+
   return {
     config: {
       bpm: exercise.defaultConfig.bpm,
@@ -55,56 +109,146 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
       playbackPosition: 0,
       currentMeasureIndex: 0,
     },
-    currentTrackId: 0,
+    currentTrackId,
     queuedActions: new Set([Action.RESET_STATE]),
-    tracks: tracks.map((track, index) => ({
-      ...track,
-      id: index,
-    })),
+    tracks,
     rawMidiBuffer: file.toArray(),
     measuresStarts: extractBarTickMap(file),
   };
 }
 
 function getTracks(file: Midi): Track[] {
-  const tracksByFamily = new Map<number, { instrument: string; notes: Note[]; channel: number }>();
+  const tracksByInstrument = new Map<
+    number,
+    {
+      instrumentNumber: MidiInstrumentNumber;
+      family: MidiInstrumentFamily;
+      notes: Note[];
+      channel: number;
+    }
+  >();
+  const DRUM_CHANNEL = 9;
 
   for (const track of file.tracks) {
-    const channel = track.channel;
+    const isDrum = track.channel === DRUM_CHANNEL;
 
-    if (tracksByFamily.has(channel)) {
-      tracksByFamily.get(channel)!.notes.push(...track.notes);
+    const instrumentNumber = isDrum
+      ? MidiInstrumentNumber.Percussions
+      : (track.instrument.number as MidiInstrumentNumber);
+    const family = isDrum
+      ? MidiInstrumentFamily.Percussive
+      : getFamilyFromInstrumentNumber(instrumentNumber);
+
+    if (tracksByInstrument.has(instrumentNumber)) {
+      tracksByInstrument.get(instrumentNumber)!.notes.push(...track.notes);
     } else {
-      tracksByFamily.set(channel, {
-        instrument: `${track.instrument.family} (${track.instrument.name})`,
+      tracksByInstrument.set(instrumentNumber, {
+        instrumentNumber,
+        family,
         notes: [...track.notes],
-        channel,
+        channel: track.channel,
       });
     }
   }
 
-  return Array.from(tracksByFamily.entries()).map(([channel, { instrument, notes }], index) => {
-    const filtered = filterNotes(notes);
-    filtered.sort((a, b) => a.ticks - b.ticks);
+  return Array.from(tracksByInstrument.values()).flatMap(
+    ({ instrumentNumber, family, notes, channel }) => {
+      const filtered = filterNotes(notes);
+      filtered.sort((a, b) => a.ticks - b.ticks);
 
-    return {
-      channel,
-      instrument,
-      id: index,
-      muted: false,
-      volume: 100,
-      data: {
-        capacity: filtered.length * 2,
-        noteCount: filtered.length,
-        pitches: new Uint8Array(filtered.map((n) => n.midi)),
-        selectedNotes: new Uint8Array(filtered.length),
-        velocities: new Uint8Array(filtered.map((n) => Math.round(n.velocity * 100))),
-        startTicks: new Uint32Array(filtered.map((n) => n.ticks)),
-        durations: new Uint32Array(filtered.map((n) => n.durationTicks)),
-      },
-    };
-  });
+      if (filtered.length <= 0) return [];
+      return {
+        id: instrumentNumber,
+        family,
+        channel,
+        muted: false,
+        volume: 100,
+        data: {
+          capacity: filtered.length * 2,
+          noteCount: filtered.length,
+          pitches: new Uint8Array(filtered.map((n) => n.midi)),
+          selectedNotes: new Uint8Array(filtered.length),
+          velocities: new Uint8Array(filtered.map((n) => Math.round(n.velocity * 100))),
+          startTicks: new Uint32Array(filtered.map((n) => n.ticks)),
+          durations: new Uint32Array(filtered.map((n) => n.durationTicks)),
+        },
+      } satisfies Track;
+    }
+  );
 }
+
+// export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): State {
+//   file.header.setTempo(exercise.defaultConfig.bpm);
+
+//   const tracks = getTracks(file);
+//   return {
+//     config: {
+//       bpm: exercise.defaultConfig.bpm,
+//       ppq: file.header.ppq,
+//       signature: [
+//         exercise.defaultConfig.timeSignatureTop,
+//         exercise.defaultConfig.timeSignatureBottom,
+//       ],
+//       subdivision: [1, 128],
+//     },
+//     transport: {
+//       loop: null,
+//       start: 0,
+//       totalDuration: file.durationTicks,
+//       status: "paused",
+//       playbackPosition: 0,
+//       currentMeasureIndex: 0,
+//     },
+//     currentTrackId: 0,
+//     queuedActions: new Set([Action.RESET_STATE]),
+//     tracks: tracks.map((track, index) => ({
+//       ...track,
+//       id: index,
+//     })),
+//     rawMidiBuffer: file.toArray(),
+//     measuresStarts: extractBarTickMap(file),
+//   };
+// }
+
+// function getTracks(file: Midi): Track[] {
+//   const tracksByFamily = new Map<number, { instrument: string; notes: Note[]; channel: number }>();
+
+//   for (const track of file.tracks) {
+//     const channel = track.channel;
+
+//     if (tracksByFamily.has(channel)) {
+//       tracksByFamily.get(channel)!.notes.push(...track.notes);
+//     } else {
+//       tracksByFamily.set(channel, {
+//         instrument: `${track.instrument.family}`,
+//         notes: [...track.notes],
+//         channel,
+//       });
+//     }
+//   }
+
+//   return Array.from(tracksByFamily.entries()).map(([channel, { instrument, notes }], index) => {
+//     const filtered = filterNotes(notes);
+//     filtered.sort((a, b) => a.ticks - b.ticks);
+
+//     return {
+//       channel,
+//       instrument,
+//       id: index,
+//       muted: false,
+//       volume: 100,
+//       data: {
+//         capacity: filtered.length * 2,
+//         noteCount: filtered.length,
+//         pitches: new Uint8Array(filtered.map((n) => n.midi)),
+//         selectedNotes: new Uint8Array(filtered.length),
+//         velocities: new Uint8Array(filtered.map((n) => Math.round(n.velocity * 100))),
+//         startTicks: new Uint32Array(filtered.map((n) => n.ticks)),
+//         durations: new Uint32Array(filtered.map((n) => n.durationTicks)),
+//       },
+//     };
+//   });
+// }
 
 function filterNotes(trackNotes: Note[]) {
   const notesByPitch: Record<number, typeof trackNotes> = {};
@@ -159,4 +303,29 @@ function extractBarTickMap(midi: Midi): Map<number, number> {
     }
   }
   return map;
+}
+
+function remapMidiFileChannels(file: Midi, tracks: Track[]): void {
+  // Map instrumentNumber → channel décidé
+  const channelByInstrument = new Map<number, number>(tracks.map((t) => [t.id, t.channel]));
+
+  const DRUM_CHANNEL = 9;
+
+  for (const midiTrack of file.tracks) {
+    const isDrum = midiTrack.channel === DRUM_CHANNEL;
+    const instrumentNumber = isDrum
+      ? MidiInstrumentNumber.Percussions
+      : (midiTrack.instrument.number as MidiInstrumentNumber);
+
+    const targetChannel = channelByInstrument.get(instrumentNumber);
+    if (targetChannel === undefined) continue;
+
+    // Mute les notes de cette track vers le bon channel
+    for (const note of midiTrack.notes) {
+      (note as any).channel = targetChannel;
+    }
+
+    // Idem pour les autres events (controlChange, pitchBend, etc.)
+    midiTrack.channel = targetChannel;
+  }
 }

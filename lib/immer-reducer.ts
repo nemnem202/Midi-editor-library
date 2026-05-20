@@ -119,7 +119,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
 
     case Action.CHANGE_TRACK_VOLUME:
-      changeTrackVolume(draft, action.volume, action.trackId);
+      changeTrackVolume(draft, action.trackId, action.volume);
       break;
 
     case Action.MUTE_TRACK:

@@ -1,6 +1,7 @@
 import type { InstrumentJSON } from "@tonejs/midi/dist/Instrument";
 import type { Action } from "./actions";
 import type { TrackJSON } from "@tonejs/midi";
+import { MidiInstrumentFamily, MidiInstrumentNumber } from "./instruments";
 
 export type Bpm = number;
 export type Signature = [number, number];
@@ -45,9 +46,9 @@ export interface Transport {
 export type TrackId = number;
 
 export interface Track {
-  id: TrackId;
+  id: MidiInstrumentNumber;
   data: MidiData;
-  instrument: InstrumentJSON["family"];
+  family: MidiInstrumentFamily;
   channel: TrackJSON["channel"];
   volume: number;
   muted: boolean;
@@ -65,7 +66,7 @@ export interface MidiData {
 
 export interface State {
   tracks: Track[];
-  currentTrackId: TrackId;
+  currentTrackId: MidiInstrumentNumber;
   config: Config;
   transport: Transport;
   queuedActions: Set<Action>;
@@ -75,7 +76,7 @@ export interface State {
 
 export interface TrackedHistoryState {
   tracks: Track[];
-  currentTrackId: TrackId;
+  currentTrackId: MidiInstrumentNumber;
   config: Config;
   queuedActions: Set<Action>;
 }
