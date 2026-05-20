@@ -84,6 +84,8 @@ export abstract class PianoRollEngine {
 
   protected isMobile: boolean;
 
+  private _unsubscribe: (() => void) | null = null;
+
   constructor({ ...props }: PianoRollConfig) {
     this.root_div = props.root_div;
     this.pianoKeyboardSize = props.pianoKeyboardSize;
@@ -92,8 +94,10 @@ export abstract class PianoRollEngine {
     this.isMobile = props.isMobile;
     this.state = useMidiStore.getState().state!;
 
-    useMidiStore.subscribe((store) => {
-      this.state = store.state!;
+    this._unsubscribe = useMidiStore.subscribe((store) => {
+      if (!store.state) return;
+
+      this.state = store.state;
 
       if (this.state.queuedActions.size > 0) {
         this.state.queuedActions.forEach((a) => {
@@ -260,8 +264,12 @@ export abstract class PianoRollEngine {
     }
 
     if (actions.has(Action.SET_TRANSPORT_STATUS)) {
-      if (!SoundEngine.get()?.isPlaying) {
+      if (this.state.transport.status === "playing") {
+        this.pianoKeyboardRenderer.draw();
         this.onSoundEngineTickUpdate();
+      }
+
+      if (!SoundEngine.get()?.isPlaying) {
         this.playheadRenderer.hidePlayhead();
       }
     }
@@ -294,6 +302,8 @@ export abstract class PianoRollEngine {
   protected abstract attachListeners(): void;
 
   public destroy(): void {
+    this._unsubscribe?.();
+    this._unsubscribe = null;
     this._isDestroyed = true;
     this.hasInitialized = false;
 
