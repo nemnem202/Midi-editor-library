@@ -385,35 +385,34 @@ export class PlayerEngine extends PianoRollEngine {
 
         {
           default: {
-            onAnyPointerEvent: () => this.cursorRenderer.setCursor("default"),
-            onAltDrag: {
-              onStart: () => this.cursorRenderer.setCursor("grabbing").lock("drag"),
-              onMove: (e) => this.viewportRenderer.tryPan(e.original, e.lastPos),
-              onEnd: (_e) => {
-                document.body.style.cursor = "default";
-              },
-            },
-            onLeftClick: (e) => {
-              this.selectionRenderer.unselectAll();
-              this.notesRenderer.addNote(e.original);
-              this.playheadRenderer.setStart(e.original);
-            },
-            onRightClick: (e) => {
-              this.menuRenderer.drawMenu(e.original);
-            },
-
-            onWheelUp: (e) => {
-              this.viewportRenderer.handleZoom(e.original);
-            },
-            onWheelDown: (e) => {
-              this.viewportRenderer.handleZoom(e.original);
-            },
-            onCtrlWheelUp: (e) => {
-              this.viewportRenderer.handleZoom(e.original);
-            },
-            onCtrlWheelDown: (e) => {
-              this.viewportRenderer.handleZoom(e.original);
-            },
+            // onAnyPointerEvent: () => this.cursorRenderer.setCursor("default"),
+            // onAltDrag: {
+            //   onStart: () => this.cursorRenderer.setCursor("grabbing").lock("drag"),
+            //   onMove: (e) => this.viewportRenderer.tryPan(e.original, e.lastPos),
+            //   onEnd: (_e) => {
+            //     document.body.style.cursor = "default";
+            //   },
+            // },
+            // onLeftClick: (e) => {
+            //   this.selectionRenderer.unselectAll();
+            //   this.notesRenderer.addNote(e.original);
+            //   this.playheadRenderer.setStart(e.original);
+            // },
+            // onRightClick: (e) => {
+            //   this.menuRenderer.drawMenu(e.original);
+            // },
+            // onWheelUp: (e) => {
+            //   this.viewportRenderer.handleZoom(e.original);
+            // },
+            // onWheelDown: (e) => {
+            //   this.viewportRenderer.handleZoom(e.original);
+            // },
+            // onCtrlWheelUp: (e) => {
+            //   this.viewportRenderer.handleZoom(e.original);
+            // },
+            // onCtrlWheelDown: (e) => {
+            //   this.viewportRenderer.handleZoom(e.original);
+            // },
           },
 
           Note: {},

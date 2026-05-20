@@ -1,5 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: Intentional */
 
+const shouldLog = false;
+
 type LogLevel = "info" | "success" | "warn" | "error" | "draw";
 
 const colors = {
@@ -25,19 +27,19 @@ export const logger = {
     console.log(...formatLog("info", msg), ...args);
   },
   success: (msg: string, ...args: any[]) => {
-    console.log(...formatLog("success", msg), ...args);
+    shouldLog && console.log(...formatLog("success", msg), ...args);
   },
   warn: (msg: string, ...args: any[]) => {
-    console.warn(...formatLog("warn", msg), ...args);
+    shouldLog && console.warn(...formatLog("warn", msg), ...args);
   },
   draw: (msg: string, ...args: any[]) => {
-    console.log(...formatLog("draw", msg), ...args);
+    shouldLog && console.log(...formatLog("draw", msg), ...args);
   },
   error: (msg: string, ...args: any[]) => {
     console.error(...formatLog("error", msg), ...args);
   },
   table: (data: any, msg?: string) => {
     if (msg) console.log(...formatLog("info", msg));
-    console.table(data);
+    shouldLog && console.table(data);
   },
 };
