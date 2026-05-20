@@ -25,6 +25,12 @@ export interface Config {
   signature: Signature;
   subdivision: Subdivision;
   ppq: PPQ;
+  countIn: boolean;
+  transposition: number;
+  repeats: number;
+  bpmPractice: number;
+  transpositionPractice: number;
+  currentMeasureOverline: boolean;
 }
 
 export interface Loop {
