@@ -1,4 +1,4 @@
-import type { NoteIndex, State, TrackId, TransportStatus } from "./instance";
+import type { Loop, NoteIndex, State, TrackId, TransportStatus } from "./instance";
 
 export enum Action {
   RENDER_ALL,
@@ -69,7 +69,7 @@ export type MidiAction = (
   | { type: Action.SET_SUBDIVISION; subdivision: [number, number] }
   | { type: Action.SET_TRANSPORT_STATUS; status: TransportStatus }
   | { type: Action.SET_TRANSPORT_START; start: number }
-  | { type: Action.SET_LOOP; loop: { start: number; end: number } | null }
+  | { type: Action.SET_LOOP; loop: Loop | null }
   | { type: Action.SET_TOTAL_DURATION; total: number }
   | { type: Action.CHANGE_CURRENT_TRACK; trackId: TrackId }
   | { type: Action.ADD_TRACK; track: State["tracks"][number] }

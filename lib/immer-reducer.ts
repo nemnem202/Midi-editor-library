@@ -97,7 +97,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
 
     case Action.SET_LOOP:
-      setLoop(draft.transport, action.loop);
+      setLoop(draft.config, action.loop);
       break;
 
     case Action.SET_TOTAL_DURATION:

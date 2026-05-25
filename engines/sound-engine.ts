@@ -184,7 +184,7 @@ export class TransportController {
     const state = useMidiStore.getState().state;
     if (!state?.rawMidiBuffer) return;
 
-    const { rawMidiBuffer, config } = state;
+    const { rawMidiBuffer, config, transport } = state;
 
     this.audio.sequencer.pause();
     this.audio.sequencer.playbackRate = 1;
@@ -200,6 +200,10 @@ export class TransportController {
 
     if (config.loop) {
       this.audio.sequencer.loopCount = Infinity;
+    }
+
+    if (transport && transport.start > 0) {
+      this.audio.seekTo(transport.start, config.bpm, config.ppq);
     }
 
     this.audio.onLoopEnd = () => {
@@ -327,6 +331,10 @@ export class TransportController {
     }
   }
 
+  setCurrentMeasure(value: number) {
+    this._currentMeasure = value;
+  }
+
   private delay(ms: number, signal: AbortSignal): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(resolve, ms);
@@ -424,6 +432,10 @@ export default class SoundEngine {
 
   get notesEvents() {
     return this.notes.notesEvents;
+  }
+
+  setCurrentMeasure(measure: number) {
+    this.transport.setCurrentMeasure(measure);
   }
 
   clearNotesEvents() {
