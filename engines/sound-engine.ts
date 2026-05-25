@@ -248,28 +248,34 @@ export class TransportController {
 
   private async play() {
     if (!this.audio.sequencer) return logger.warn("Séquenceur non prêt");
-
+    const state = useMidiStore.getState().state;
+    if (!state) return;
     this.countInController?.abort();
     this.countInController = new AbortController();
     const { signal } = this.countInController;
 
     if (this.context.state === "suspended") this.context.resume();
 
-    try {
-      const bpm = this.store.midiState?.config.bpm ?? this.audio.sequencer.currentTempo;
-      const msPerBeat = (60 / bpm) * 1000;
+    logger.info("Play, countin? ", state.config.countIn);
+    if (state.config.countIn) {
+      try {
+        const bpm = this.store.midiState?.config.bpm ?? this.audio.sequencer.currentTempo;
+        const msPerBeat = (60 / bpm) * 1000;
 
-      for (let i = 0; i < 4; i++) {
-        this.audio.synth.noteOn(9, 76, 100);
-        await this.delay(msPerBeat, signal);
+        for (let i = 0; i < 4; i++) {
+          this.audio.synth.noteOn(9, 76, 100);
+          await this.delay(msPerBeat, signal);
+        }
+        this.audio.sequencer.play();
+      } catch (e) {
+        if (e instanceof Error && e.message !== "aborted") {
+          logger.error("Erreur pendant le décompte:", e);
+        }
+      } finally {
+        this.countInController = null;
       }
+    } else {
       this.audio.sequencer.play();
-    } catch (e) {
-      if (e instanceof Error && e.message !== "aborted") {
-        logger.error("Erreur pendant le décompte:", e);
-      }
-    } finally {
-      this.countInController = null;
     }
   }
 

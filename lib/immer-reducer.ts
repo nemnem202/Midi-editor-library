@@ -148,5 +148,22 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
         draft.measuresStarts
       );
       break;
+
+    case Action.SET_COUNT_INT:
+      logger.info("Set count in", action.countin);
+      draft.config.countIn = action.countin;
+      break;
+    case Action.SET_REPEATS:
+      draft.config.repeats = action.repeats;
+      break;
+    case Action.SET_BPM_PRACTICE:
+      draft.config.bpm = action.bpm;
+      break;
+    case Action.SET_TRANSPOSITION:
+      draft.config.transposition = action.transposition;
+      break;
+    case Action.SET_TRANSPOSITION_PRACTICE:
+      draft.config.transpositionPractice = action.transposition;
+      break;
   }
 };
