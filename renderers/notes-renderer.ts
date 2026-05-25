@@ -92,8 +92,8 @@ export class PlayerNotesRenderer extends NotesRenderer {
       }
       sprite.visible = true;
       sprite.y = totalDuration - startTicks[i] - durations[i];
-      sprite.x = noteWidth * pitches[i];
-      sprite.width = noteWidth;
+      sprite.x = noteWidth * pitches[i] + 1;
+      sprite.width = noteWidth - 2;
       sprite.height = durations[i];
 
       if (durations[i] < MIN_NOTE_DISPLAYED_SIZE) {

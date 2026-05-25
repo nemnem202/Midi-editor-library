@@ -93,6 +93,8 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
           (pianoKeyboardSize * 2) / 3
         )
         .fill(noteOn ? colors.primary : colors.background);
+
+      if (noteOn) graphic.stroke({ color: colors.background, pixelLine: true });
     } else {
       const whitesBefore = this.countWhiteKeysBefore(pitch);
       graphic
