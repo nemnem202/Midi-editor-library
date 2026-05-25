@@ -12,6 +12,8 @@ import { Action } from "../types/actions";
 import { Event } from "../types/events";
 import { logger } from "../lib/logger";
 
+const MIN_NOTE_DISPLAYED_SIZE = 5;
+
 export class NoteSprite extends Sprite {
   constructor(
     public readonly index: number,
@@ -71,7 +73,6 @@ export class PlayerNotesRenderer extends NotesRenderer {
     const { tracks, currentTrackId } = this.state;
     const { totalDuration } = this.state.transport;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
-    logger.info("Current track data: ", currentTrack);
     if (!currentTrack) return;
     const { noteCount, startTicks, durations, pitches } = currentTrack.data;
     const { colors } = this.deps.engine;
@@ -91,9 +92,14 @@ export class PlayerNotesRenderer extends NotesRenderer {
       }
       sprite.visible = true;
       sprite.y = totalDuration - startTicks[i] - durations[i];
-      sprite.x = noteWidth * pitches[i];
-      sprite.width = noteWidth;
+      sprite.x = noteWidth * pitches[i] + 1;
+      sprite.width = noteWidth - 2;
       sprite.height = durations[i];
+
+      if (durations[i] < MIN_NOTE_DISPLAYED_SIZE) {
+        sprite.height = MIN_NOTE_DISPLAYED_SIZE;
+        sprite.y -= MIN_NOTE_DISPLAYED_SIZE - durations[i];
+      }
       sprite.tint = colors.primary;
     }
 
@@ -135,7 +141,6 @@ export class EditorNotesRenderer extends NotesRenderer {
 
     const { tracks, currentTrackId } = this.state;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
-    logger.info("Current track", currentTrack?.data);
     if (!currentTrack) return;
     const { noteCount, startTicks, durations, pitches, selectedNotes } = currentTrack.data;
     const { colors } = this.deps.engine;
@@ -213,7 +218,9 @@ export class EditorNotesRenderer extends NotesRenderer {
     if (!(target instanceof NoteSprite) || Number.isNaN(target.index)) return;
 
     const { tracks, currentTrackId } = this.state;
-    const { selectedNotes } = tracks[currentTrackId].data;
+    const currentTrack = tracks.find((t) => t.id === currentTrackId);
+    if (!currentTrack) return;
+    const { selectedNotes } = currentTrack.data;
 
     const localOffset = target.toLocal(e.global);
     const selectedPool: NoteSprite[] = [];
@@ -242,7 +249,6 @@ export class EditorNotesRenderer extends NotesRenderer {
       lastGlobalY: e.globalY,
       selectedPool,
     };
-    logger.info("Note drag start");
   }
 
   public endNoteDrag(): void {
@@ -261,7 +267,6 @@ export class EditorNotesRenderer extends NotesRenderer {
     });
 
     this.dragState = null;
-    logger.info("Note drag end");
   }
 
   public deleteNote(_: FederatedPointerEvent) {}

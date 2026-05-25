@@ -20,10 +20,16 @@ import {
   setTotalDuration,
   setTracklistPosition,
   setTransportStart,
-  togglePlay,
-  triggerStop,
 } from "../actions/transport";
-import { addTrack, changeCurrentTrack, removeTrack } from "../actions/track";
+import {
+  addTrack,
+  changeCurrentTrack,
+  changeTrackVolume,
+  muteTrack,
+  removeTrack,
+  unmuteTrack,
+} from "../actions/track";
+import { logger } from "./logger";
 
 export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
   let track: Draft<State["tracks"][number]> | undefined;
@@ -86,20 +92,12 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       setSubdivision(draft.config, action.subdivision);
       break;
 
-    case Action.TOGGLE_PLAY:
-      togglePlay(draft.transport, action.force);
-      break;
-
-    case Action.STOP:
-      triggerStop(draft.transport);
-      break;
-
     case Action.SET_TRANSPORT_START:
       setTransportStart(draft.transport, action.start);
       break;
 
     case Action.SET_LOOP:
-      setLoop(draft.transport, action.loop);
+      setLoop(draft.config, action.loop);
       break;
 
     case Action.SET_TOTAL_DURATION:
@@ -119,6 +117,36 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
     case Action.SET_TRACKLIST_POSITION:
       setTracklistPosition(draft.transport, action.position);
+      break;
+
+    case Action.CHANGE_TRACK_VOLUME:
+      changeTrackVolume(draft, action.trackId, action.volume);
+      break;
+
+    case Action.MUTE_TRACK:
+      muteTrack(draft, action.trackId);
+      break;
+    case Action.UNMUTE_TRACK:
+      unmuteTrack(draft, action.trackId);
+      break;
+    case Action.SET_TRANSPORT_STATUS:
+      draft.transport.status = action.status;
+      break;
+    case Action.ZoomY:
+      draft.display.zoomY = action.zoomY;
+      break;
+
+    case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
+      const measureIndexes = draft.measuresStarts.get(action.measureIndex);
+      draft.transport.start = measureIndexes ? measureIndexes[0] : 0;
+      logger.info(
+        "Measure index",
+        action.measureIndex,
+        "Measures starts found: ",
+        draft.measuresStarts.get(action.measureIndex),
+        "Measures starts : ",
+        draft.measuresStarts
+      );
       break;
   }
 };

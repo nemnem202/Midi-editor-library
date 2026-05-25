@@ -77,10 +77,10 @@ export default class SelectionRenderer extends Renderer<SelectionRendererDeps> {
 
   private selectNotes(square: { width: number; height: number; x: number; y: number }) {
     const { currentTrackId, tracks } = this.state;
-    const track = tracks[currentTrackId];
-    if (!track) return;
+    const currentTrack = tracks.find((t) => t.id === currentTrackId);
+    if (!currentTrack) return;
 
-    const data = track.data;
+    const data = currentTrack.data;
     const noteHeight = this.deps.app.screen.height / 128;
     const nextSelected = new Uint8Array(data.noteCount);
     let changed = false;

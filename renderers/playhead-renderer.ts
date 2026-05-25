@@ -22,45 +22,51 @@ export class PlayerTacklistRenderer extends PlayheadRenderer {
       eventMode: "none",
     });
     this.container.addChild(this.tracklist);
-    this.initGraphics();
+    // this.initGraphics();
   }
 
-  private initGraphics(): void {
-    const { width } = this.deps.app.screen;
+  // public updatePlayhead(playheadPosition: number): void {}
+  public drawTracklist(): void {}
+  public setStart(e: FederatedPointerEvent): void {}
 
-    this.tracklist.clear();
-    this.tracklist.moveTo(0, 0).lineTo(width, 0).stroke({ color: "#00ff40", pixelLine: true });
-  }
+  public hidePlayhead(): void {}
+
+  // private initGraphics(): void {
+  //   const { width } = this.deps.app.screen;
+
+  //   this.tracklist.clear();
+  //   this.tracklist.moveTo(0, 0).lineTo(width, 0).stroke({ color: "#00ff40", pixelLine: true });
+  // }
 
   public updatePlayhead(playheadPosition: number): void {
     this.deps.viewportRenderer.scrollToTick(playheadPosition);
   }
 
-  public drawTracklist(): void {
-    const { start, totalDuration } = this.state.transport;
+  // public drawTracklist(): void {
+  //   const { start, totalDuration } = this.state.transport;
 
-    const { width } = this.deps.app.screen;
+  //   const { width } = this.deps.app.screen;
 
-    this.tracklist.clear();
-    this.tracklist
-      .moveTo(0, totalDuration - start)
-      .lineTo(width, totalDuration - start)
-      .stroke({ color: "#00ff40", pixelLine: true });
-  }
-  public hidePlayhead(): void {}
+  //   this.tracklist.clear();
+  //   this.tracklist
+  //     .moveTo(0, totalDuration - start)
+  //     .lineTo(width, totalDuration - start)
+  //     .stroke({ color: "#00ff40", pixelLine: true });
+  // }
+  // public hidePlayhead(): void {}
 
-  public setStart(e: FederatedPointerEvent) {
-    const viewport = this.deps.viewportRenderer.container;
-    const { totalDuration } = this.state.transport;
+  // public setStart(e: FederatedPointerEvent) {
+  //   const viewport = this.deps.viewportRenderer.container;
+  //   const { totalDuration } = this.state.transport;
 
-    const local = viewport.toLocal(e.global);
+  //   const local = viewport.toLocal(e.global);
 
-    this.dispatch({
-      type: Action.SET_TRANSPORT_START,
-      start: Math.min(Math.max(0, totalDuration - local.y), totalDuration),
-      skipHistory: true,
-    });
-  }
+  //   this.dispatch({
+  //     type: Action.SET_TRANSPORT_START,
+  //     start: Math.min(Math.max(0, totalDuration - local.y), totalDuration),
+  //     skipHistory: true,
+  //   });
+  // }
 }
 
 export class EditorPlayheadRenderer extends PlayheadRenderer {

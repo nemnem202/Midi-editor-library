@@ -28,7 +28,12 @@ export const MIDI_EVENT_CHANGE_ACTIONS = [
 
 export const LOOP_ACTIONS = [Action.SET_LOOP];
 
-export const LAYOUT_ACTIONS = [Action.SET_BPM, Action.SET_SIGNATURE, Action.SET_SUBDIVISION];
+export const LAYOUT_ACTIONS = [
+  Action.SET_BPM,
+  Action.SET_SIGNATURE,
+  Action.SET_SUBDIVISION,
+  Action.ZoomY,
+];
 
 export const PIANO_KEYBOARD_ACTIONS = [Action.ADD_NOTE, Action.MOVE_NOTE];
 

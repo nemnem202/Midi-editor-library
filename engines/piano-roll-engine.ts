@@ -82,15 +82,21 @@ export abstract class PianoRollEngine {
 
   public strategy: Strategy;
 
+  protected isMobile: boolean;
+
+  private _unsubscribe: (() => void) | null = null;
+
   constructor({ ...props }: PianoRollConfig) {
     this.root_div = props.root_div;
     this.pianoKeyboardSize = props.pianoKeyboardSize;
     this.colors = props.colors;
     this.strategy = props.strategy;
+    this.isMobile = props.isMobile;
+    this.state = useMidiStore.getState().state!;
 
-    this.state = useMidiStore.getState().state;
+    this._unsubscribe = useMidiStore.subscribe((store) => {
+      if (!store.state) return;
 
-    useMidiStore.subscribe((store) => {
       this.state = store.state;
 
       if (this.state.queuedActions.size > 0) {
@@ -109,7 +115,17 @@ export abstract class PianoRollEngine {
     this.eventsDirtyFlags.add(event);
   }
 
+  public setIsMobile(isMobile: boolean) {
+    if (isMobile !== this.isMobile) {
+      this.isMobile = isMobile;
+      this.setupResizeLogic();
+      this.attachListeners();
+      this.viewportRenderer.findOptimizedZoom();
+    }
+  }
+
   public async init() {
+    logger.warn("Player initialisation");
     try {
       this._isDestroyed = false;
       await this.app.init({
@@ -134,19 +150,10 @@ export abstract class PianoRollEngine {
         return;
       }
 
-      this._resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0) {
-            this.app.renderer.resize(width, height);
-          }
-        }
-      });
-      this._resizeObserver.observe(this.root_div);
       try {
         this.soundEngine = SoundEngine.get();
       } catch (e) {
-        logger.info("PianoRoll: SoundEngine wait for user interaction.");
+        logger.warn("PianoRoll: SoundEngine wait for user interaction.");
       }
 
       this.app.stage.eventMode = "static";
@@ -156,12 +163,26 @@ export abstract class PianoRollEngine {
       this.app.stage.addChild(this.layoutRenderer.container);
 
       this.hasInitialized = true;
-      this.drawAll();
+
+      if (this.isMobile) {
+        this.drawAll();
+      } else {
+        this._resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (width > 0 && height > 0) {
+              this.app.renderer.resize(width, height);
+            }
+          }
+        });
+        this._resizeObserver.observe(this.root_div);
+        this.viewportRenderer.findOptimizedZoom();
+      }
 
       this.app.ticker.add(() => this.onTickUpdate());
       this.attachListeners();
     } catch (error) {
-      console.error("PIXI Init Error:", error);
+      logger.error("PIXI Init Error:", error);
     }
   }
 
@@ -180,8 +201,9 @@ export abstract class PianoRollEngine {
     this.playheadRenderer.drawTracklist();
     this.loopRenderer.draw();
     this.viewportRenderer.draw();
+    if (this.isMobile) this.viewportRenderer.findOptimizedZoom();
     this.pianoKeyboardRenderer.draw();
-    logger.info("Draw all", Date.now() - now);
+    logger.draw("All", Date.now() - now);
   }
 
   protected onTickUpdate() {
@@ -233,7 +255,6 @@ export abstract class PianoRollEngine {
     if ([...actions].some((a) => PIANO_KEYBOARD_ACTIONS.includes(a))) {
       this.pianoKeyboardRenderer.draw();
     }
-
     if (actions.has(Action.SET_TRANSPORT_START)) {
       const { start } = this.state.transport;
 
@@ -241,15 +262,15 @@ export abstract class PianoRollEngine {
       this.pianoKeyboardRenderer.draw();
     }
 
-    if (actions.has(Action.TOGGLE_PLAY)) {
-      if (!SoundEngine.get()?.isPlaying) {
+    if (actions.has(Action.SET_TRANSPORT_STATUS)) {
+      if (this.state.transport.status === "playing") {
+        this.pianoKeyboardRenderer.draw();
         this.onSoundEngineTickUpdate();
+      }
+
+      if (!SoundEngine.get()?.isPlaying) {
         this.playheadRenderer.hidePlayhead();
       }
-    }
-
-    if (actions.has(Action.STOP)) {
-      this.onSoundEngineTickUpdate();
     }
   }
 
@@ -280,6 +301,8 @@ export abstract class PianoRollEngine {
   protected abstract attachListeners(): void;
 
   public destroy(): void {
+    this._unsubscribe?.();
+    this._unsubscribe = null;
     this._isDestroyed = true;
     this.hasInitialized = false;
 
@@ -287,7 +310,7 @@ export abstract class PianoRollEngine {
       try {
         this.pointerHandler?.destroy();
       } catch (e) {
-        console.warn("PointerHandler destruction error", e);
+        logger.warn("PointerHandler destruction error", e);
       }
     }
 
@@ -321,8 +344,31 @@ export abstract class PianoRollEngine {
         this.app?.destroy(false);
       } catch (e) {}
     }
+  }
 
-    logger.info("Renderer Engine destroyed (but Sound continues)");
+  private setupResizeLogic() {
+    this.cleanupResizeLogic();
+
+    if (this.isMobile) {
+      this.drawAll();
+    } else {
+      this._resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          if (width > 0 && height > 0) {
+            this.app.renderer.resize(width, height);
+          }
+        }
+      });
+      this._resizeObserver.observe(this.root_div);
+    }
+  }
+
+  private cleanupResizeLogic() {
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null!;
+    }
   }
 }
 
@@ -332,52 +378,30 @@ export class PlayerEngine extends PianoRollEngine {
   }
 
   protected override attachListeners(): void {
+    this.app.renderer.off("resize");
+
+    if (this.pointerHandler) {
+      this.pointerHandler.destroy();
+    }
+
     this.app.renderer.on("resize", () => {
       this.eventsDirtyFlags.add(Event.Resize);
     });
 
-    this.pointerHandler = new PointerActionHandler(
-      this.app,
+    if (!this.isMobile) {
+      this.pointerHandler = new PointerActionHandler(
+        this.app,
 
-      {
-        default: {
-          onAnyPointerEvent: () => this.cursorRenderer.setCursor("default"),
-          onAltDrag: {
-            onStart: () => this.cursorRenderer.setCursor("grabbing").lock("drag"),
-            onMove: (e) => this.viewportRenderer.tryPan(e.original, e.lastPos),
-            onEnd: (_e) => {
-              document.body.style.cursor = "default";
-            },
-          },
-          onLeftClick: (e) => {
-            this.selectionRenderer.unselectAll();
-            this.notesRenderer.addNote(e.original);
-            this.playheadRenderer.setStart(e.original);
-          },
-          onRightClick: (e) => {
-            this.menuRenderer.drawMenu(e.original);
-          },
+        {
+          default: {},
 
-          onWheelUp: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
-          onWheelDown: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
-          onCtrlWheelUp: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
-          onCtrlWheelDown: (e) => {
-            this.viewportRenderer.handleZoom(e.original);
-          },
+          Note: {},
+
+          Keyboard: {},
         },
-
-        Note: {},
-
-        Keyboard: {},
-      },
-      { dragThreshold: 10 }
-    );
+        { dragThreshold: 10 }
+      );
+    }
   }
 
   protected initRenderers(): void {
@@ -406,6 +430,7 @@ export class PlayerEngine extends PianoRollEngine {
       engine: this,
       eventsDirtyFlags: this.eventsDirtyFlags,
       gridRenderer: this.gridRenderer,
+      state: this.state,
     });
 
     this.notesRenderer = new PlayerNotesRenderer({
@@ -453,24 +478,27 @@ export class PlayerEngine extends PianoRollEngine {
 
   protected onSoundEngineTickUpdate() {
     if (!this.soundEngine) this.soundEngine = SoundEngine.get();
-    if (!this.soundEngine) return logger.error("no sound engine");
-    const { currentTime, currentTempo, notesOn, notesOff } = this.soundEngine;
+    if (!this.soundEngine) return;
 
+    const { currentTime, currentTempo, notesEvents } = this.soundEngine;
     const { config, currentTrackId, tracks } = this.state;
     const currentTick = convertSecondsToTick(currentTime, currentTempo, config.ppq);
 
     this.playheadRenderer.updatePlayhead(currentTick);
 
-    const notesOnCurrentTrack = Array.from(notesOn).filter(
-      (note) => note.channel === tracks[currentTrackId].channel
-    );
-    const notesOffCurrentTrack = Array.from(notesOff).filter(
-      (note) => note.channel === tracks[currentTrackId].channel
+    const currentTrack = tracks.find((t) => t.id === currentTrackId);
+    if (!currentTrack) return;
+
+    const notesEventsCurrentTrack = notesEvents.filter(
+      (note) => note.channel === currentTrack.channel
     );
 
-    this.pianoKeyboardRenderer.colorNotes(notesOnCurrentTrack, notesOffCurrentTrack);
-    this.soundEngine.clearNotesOn();
-    this.soundEngine.clearNotesOff();
+    if (notesEventsCurrentTrack.length > 0) {
+      this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);
+      this.soundEngine.clearNotesEvents();
+    } else {
+      this.pianoKeyboardRenderer.colorNotes([]);
+    }
   }
 }
 
@@ -585,6 +613,7 @@ export class EditorEngine extends PianoRollEngine {
       engine: this,
       eventsDirtyFlags: this.eventsDirtyFlags,
       gridRenderer: this.gridRenderer,
+      state: this.state,
     });
 
     this.notesRenderer = new EditorNotesRenderer({
@@ -630,7 +659,5 @@ export class EditorEngine extends PianoRollEngine {
     this.cursorRenderer = new CursorRenderer({ app: this.app, engine: this });
   }
 
-  protected onSoundEngineTickUpdate(): void {
-    // this.playheadRenderer.updatePlayhead(tick);
-  }
+  protected onSoundEngineTickUpdate(): void {}
 }

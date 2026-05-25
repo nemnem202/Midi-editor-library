@@ -1,6 +1,7 @@
 import type { InstrumentJSON } from "@tonejs/midi/dist/Instrument";
 import type { Action } from "./actions";
 import type { TrackJSON } from "@tonejs/midi";
+import { MidiInstrumentFamily, MidiInstrumentNumber } from "./instruments";
 
 export type Bpm = number;
 export type Signature = [number, number];
@@ -24,29 +25,40 @@ export interface Config {
   signature: Signature;
   subdivision: Subdivision;
   ppq: PPQ;
+  countIn: boolean;
+  transposition: number;
+  repeats: number;
+  bpmPractice: number;
+  transpositionPractice: number;
+  currentMeasureOverline: boolean;
+  loop: Loop | null;
 }
 
 export interface Loop {
   start: Tick;
   end: Tick;
+  currentRepeatIndex: number;
 }
+
+export type TransportStatus = "playing" | "paused" | "reset";
 
 export interface Transport {
   start: Tick;
   playbackPosition: Tick;
   currentMeasureIndex: number;
-  loop: Loop | null;
   totalDuration: Tick;
-  isPlaying: boolean;
+  status: TransportStatus;
 }
 
 export type TrackId = number;
 
 export interface Track {
-  id: TrackId;
+  id: MidiInstrumentNumber;
   data: MidiData;
-  instrument: InstrumentJSON["family"];
+  family: MidiInstrumentFamily;
   channel: TrackJSON["channel"];
+  volume: number;
+  muted: boolean;
 }
 
 export interface MidiData {
@@ -59,18 +71,24 @@ export interface MidiData {
   selectedNotes: Uint8Array;
 }
 
+export interface Display {
+  zoomY: number;
+}
+
 export interface State {
   tracks: Track[];
-  currentTrackId: TrackId;
+  currentTrackId: MidiInstrumentNumber;
   config: Config;
   transport: Transport;
+  display: Display;
   queuedActions: Set<Action>;
   rawMidiBuffer: Uint8Array;
+  measuresStarts: Map<number, Tick[]>;
 }
 
 export interface TrackedHistoryState {
   tracks: Track[];
-  currentTrackId: TrackId;
+  currentTrackId: MidiInstrumentNumber;
   config: Config;
   queuedActions: Set<Action>;
 }
