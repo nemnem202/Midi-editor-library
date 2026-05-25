@@ -179,6 +179,7 @@ export class TransportController {
   private _currentMeasure: number = 0;
   private _seekPending: boolean = false;
   private _loopJumping: boolean = false;
+  private _currentLoopIndex: number = 0;
 
   constructor(
     private readonly audio: AudioCore,
@@ -206,7 +207,7 @@ export class TransportController {
     if (!state) return;
 
     const { rawMidiBuffer, config, transport } = state;
-
+    this._currentLoopIndex = 0;
     this.audio.sequencer.pause();
     this.audio.sequencer.playbackRate = 1;
 
@@ -237,6 +238,7 @@ export class TransportController {
     this.audio.onLoopEnd = () => {
       if (!config.loop) return;
       this._loopJumping = true;
+      this._currentLoopIndex++;
       this.audio.seekTo(config.loop.start, config.ppq);
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
@@ -255,8 +257,6 @@ export class TransportController {
     const { signal } = this.countInController;
 
     if (this.context.state === "suspended") this.context.resume();
-
-    logger.info("Play, countin? ", state.config.countIn);
     if (state.config.countIn) {
       try {
         const bpm = this.store.midiState?.config.bpm ?? this.audio.sequencer.currentTempo;
@@ -300,6 +300,7 @@ export class TransportController {
     this.audio.sequencer.currentTime = 0;
     this.audio.sequencer.pause();
     this._currentMeasure = 0;
+    this._currentLoopIndex = 0;
   }
 
   resetState(): void {
