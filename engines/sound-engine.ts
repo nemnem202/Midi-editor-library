@@ -158,14 +158,17 @@ export class TransportController {
   private _currentMeasure: number = 0;
   private _seekPending: boolean = false;
   private _loopJumping: boolean = false;
+
   constructor(
     private readonly audio: AudioCore,
     private readonly store: StoreConnector,
-    private readonly context: AudioContext
+    private readonly context: AudioContext,
+    private readonly onMeasureChange: null | ((measure: number) => void)
   ) {
     this.audio.onMeasureUpdate = (m) => {
       if (this._seekPending) return;
       this._currentMeasure = m;
+      SoundEngine.onMeasureChange?.(m);
     };
   }
 
@@ -345,6 +348,8 @@ export default class SoundEngine {
 
   private processFrameId: number | null = null;
 
+  public static onMeasureChange: ((measure: number) => void) | null = null;
+
   private constructor(
     audio: AudioCore,
     notes: NoteTracker,
@@ -371,7 +376,12 @@ export default class SoundEngine {
       instance?.transport.processActions(store.consumeFlags());
     });
 
-    const transport = new TransportController(audio, store, SoundEngine.context);
+    const transport = new TransportController(
+      audio,
+      store,
+      SoundEngine.context,
+      this.onMeasureChange
+    );
 
     audio.sequencer.eventHandler.addEvent("songEnded", "Id sequencer", () => {
       if (transport.isLoopJumping) {
