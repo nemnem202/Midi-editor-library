@@ -187,6 +187,7 @@ export class TransportController {
     const { rawMidiBuffer, config } = state;
 
     this.audio.sequencer.pause();
+    this.audio.sequencer.playbackRate = 1;
 
     const cleanBuffer = rawMidiBuffer.buffer.slice(
       rawMidiBuffer.byteOffset,
