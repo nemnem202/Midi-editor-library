@@ -157,7 +157,8 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       draft.config.repeats = action.repeats;
       break;
     case Action.SET_BPM_PRACTICE:
-      draft.config.bpm = action.bpm;
+      logger.info("Bpm practice update", action.bpm);
+      draft.config.bpmPractice = action.bpm;
       break;
     case Action.SET_TRANSPOSITION:
       draft.config.transposition = action.transposition;

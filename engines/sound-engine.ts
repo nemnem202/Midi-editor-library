@@ -236,10 +236,16 @@ export class TransportController {
     }
 
     this.audio.onLoopEnd = () => {
-      if (!config.loop) return;
+      const state = this.store.midiState;
+      if (!state || !state.config.loop) return;
       this._loopJumping = true;
       this._currentLoopIndex++;
-      this.audio.seekTo(config.loop.start, config.ppq);
+      if (this._currentLoopIndex >= state.config.repeats) this._loopJumping = false;
+      this.audio.setPlaybackRate(
+        state.config.bpm + state.config.bpmPractice * this._currentLoopIndex
+      );
+      this.transposeAllChannels(state.config.transpositionPractice * this._currentLoopIndex);
+      this.audio.seekTo(state.config.loop.start, state.config.ppq);
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           this._loopJumping = false;
@@ -248,10 +254,21 @@ export class TransportController {
     };
   }
 
+  private transposeAllChannels(semitones: number) {
+    const state = this.store.midiState;
+    if (!state || semitones <= 0) return;
+    for (const track of state.tracks) {
+      this.audio.synth.transposeChannel(track.channel, semitones, false);
+    }
+  }
+
   private async play() {
     if (!this.audio.sequencer) return logger.warn("Séquenceur non prêt");
     const state = useMidiStore.getState().state;
     if (!state) return;
+    this.audio.setPlaybackRate(
+      state.config.bpm + state.config.bpmPractice * this._currentLoopIndex
+    );
     this.countInController?.abort();
     this.countInController = new AbortController();
     const { signal } = this.countInController;
@@ -301,6 +318,7 @@ export class TransportController {
     this.audio.sequencer.pause();
     this._currentMeasure = 0;
     this._currentLoopIndex = 0;
+    this._loopJumping = !!this.store.midiState?.config.repeats;
   }
 
   resetState(): void {
@@ -432,7 +450,6 @@ export default class SoundEngine {
 
     audio.sequencer.eventHandler.addEvent("songEnded", "Id sequencer", () => {
       if (transport.isLoopJumping) {
-        logger.info("songEnded ignoré (loop en cours)");
         return;
       }
       transport.resume();
