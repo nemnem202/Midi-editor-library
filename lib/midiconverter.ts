@@ -115,6 +115,9 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
       playbackPosition: 0,
       currentMeasureIndex: 0,
     },
+    display: {
+      zoomY: 50,
+    },
     currentTrackId,
     queuedActions: new Set([Action.RESET_STATE]),
     tracks,

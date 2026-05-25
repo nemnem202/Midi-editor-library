@@ -255,7 +255,6 @@ export abstract class PianoRollEngine {
     if ([...actions].some((a) => PIANO_KEYBOARD_ACTIONS.includes(a))) {
       this.pianoKeyboardRenderer.draw();
     }
-
     if (actions.has(Action.SET_TRANSPORT_START)) {
       const { start } = this.state.transport;
 

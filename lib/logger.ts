@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: Intentional */
 
-const shouldLog = false;
+const shouldLog = true;
 
 type LogLevel = "info" | "success" | "warn" | "error" | "draw";
 

@@ -29,6 +29,7 @@ import {
   removeTrack,
   unmuteTrack,
 } from "../actions/track";
+import { logger } from "./logger";
 
 export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
   let track: Draft<State["tracks"][number]> | undefined;
@@ -130,6 +131,9 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
     case Action.SET_TRANSPORT_STATUS:
       draft.transport.status = action.status;
+      break;
+    case Action.ZoomY:
+      draft.display.zoomY = action.zoomY;
       break;
 
     case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:

@@ -71,11 +71,16 @@ export interface MidiData {
   selectedNotes: Uint8Array;
 }
 
+export interface Display {
+  zoomY: number;
+}
+
 export interface State {
   tracks: Track[];
   currentTrackId: MidiInstrumentNumber;
   config: Config;
   transport: Transport;
+  display: Display;
   queuedActions: Set<Action>;
   rawMidiBuffer: Uint8Array;
   measuresStarts: Map<number, Tick>;

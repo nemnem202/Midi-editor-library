@@ -1,6 +1,6 @@
 import { Container, type FederatedPointerEvent, type FederatedWheelEvent } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
-import { ZOOM_FACTOR } from "../config/viewport";
+import { MIN_SCALE_Y, ZOOM_FACTOR } from "../config/viewport";
 import type PianoKeyboardRenderer from "./piano-keyboard-renderer";
 import type BackgroundRenderer from "./background-renderer";
 import type NotesRenderer from "./notes-renderer";
@@ -8,6 +8,8 @@ import { Event } from "../types/events";
 import type GridRenderer from "./grid-renderer";
 import type { State } from "../types/instance";
 import { logger } from "@/lib/logger";
+
+const MINSCALEY = 0.5;
 
 export interface ViewportRendererDeps extends RendererDeps {
   pianoKeyboardRenderer: PianoKeyboardRenderer;
@@ -26,6 +28,7 @@ export default abstract class ViewportRenderer extends Renderer<ViewportRenderer
   protected pendingZoomGlobalX = 0;
   protected pendingZoomGlobalY = 0;
   protected pendingCenterTick: number | null = null;
+  protected lastZoomY: number | null = null;
 
   public abstract draw(): void;
 
@@ -183,6 +186,22 @@ export class PlayerViewportRenderer extends ViewportRenderer {
   public draw(): void {
     let needsGridUpdate = false;
     const { pianoKeyboardSize } = this.deps.engine;
+
+    const currentZoomY = this.deps.engine.state.display.zoomY;
+    if (currentZoomY !== this.lastZoomY) {
+      const MAX_ZOOM_FACTOR = 10;
+      const t = currentZoomY / 100;
+      const newScaleY = MIN_SCALE_Y * Math.pow(MAX_ZOOM_FACTOR, t);
+      const { height } = this.deps.app.screen;
+      const { pianoKeyboardSize } = this.deps.engine;
+      const pivotWorldY = height - pianoKeyboardSize;
+      const pivotLocalY = (pivotWorldY - this.container.y) / this.container.scale.y;
+      this.container.scale.y = newScaleY;
+      this.container.y = pivotWorldY - pivotLocalY * newScaleY;
+      this.lastZoomY = currentZoomY;
+      needsGridUpdate = true;
+    }
+
     if (this.pendingZoomDeltaY !== null) {
       const { height } = this.deps.app.screen;
       const { transport } = this.state;

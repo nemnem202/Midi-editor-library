@@ -37,6 +37,8 @@ export enum Action {
   CHANGE_TRACK_VOLUME,
   MUTE_TRACK,
   UNMUTE_TRACK,
+
+  ZoomY,
 }
 
 export type MidiAction = (
@@ -78,4 +80,5 @@ export type MidiAction = (
   | { type: Action.MUTE_TRACK; trackId: TrackId }
   | { type: Action.UNMUTE_TRACK; trackId: TrackId }
   | { type: Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX; measureIndex: number }
+  | { type: Action.ZoomY; zoomY: number }
 ) & { skipHistory?: boolean };
