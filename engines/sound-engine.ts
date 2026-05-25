@@ -203,7 +203,7 @@ export class TransportController {
 
   public loadNewMidi() {
     const state = useMidiStore.getState().state;
-    if (!state?.rawMidiBuffer) return;
+    if (!state) return;
 
     const { rawMidiBuffer, config, transport } = state;
 
@@ -227,7 +227,7 @@ export class TransportController {
     }
 
     if (config.loop) {
-      this.audio.sequencer.loopCount = Infinity;
+      this.audio.sequencer.loopCount = state.config.repeats;
     }
 
     if (transport && transport.start > 0) {
@@ -362,6 +362,9 @@ export class TransportController {
         reset: () => this.resume(),
       };
       handlers[this.store.midiState.transport.status]?.();
+    }
+    if (flags.has(Action.SET_LOOP) || flags.has(Action.SET_REPEATS)) {
+      this.audio.sequencer.loopCount = this.store.midiState.config.repeats;
     }
   }
 
