@@ -35,7 +35,7 @@ import { Action } from "../types/actions";
 import { useMidiStore } from "../stores/use-midi-store";
 import { Event } from "../types/events";
 import CursorRenderer from "../renderers/cursor-renderer";
-import SoundEngine from "./sound/sound-engine";
+import SoundEngine from "./sound-engine";
 import type GrayedNotesRenderer from "../renderers/grayed-notes-renderer";
 import {
   EditorGrayedNotesRenderer,

@@ -2,9 +2,13 @@ import { Container, Graphics } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
 import { logger } from "../lib/logger";
 import { isBlackKey } from "../lib/utils";
-import {} from "../engines/sound/sound-engine";
+import {
+  NoteEventKind,
+  type NoteEvent,
+  type NoteOffCallback,
+  type NoteOnCallback,
+} from "../engines/sound-engine";
 import { Note } from "@tonejs/midi/dist/Note";
-import { NoteEvent, NoteEventKind } from "../engines/sound/noteTracker";
 
 export interface PianoKeyboardRendererDeps extends RendererDeps {}
 
