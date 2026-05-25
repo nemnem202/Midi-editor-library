@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import SoundEngine from "../engines/sound-engine";
+import SoundEngine from "../engines/sound/sound-engine";
 import type { State, Track, TrackId } from "../types/instance";
 
 export function changeCurrentTrack(state: State, trackId: TrackId) {
