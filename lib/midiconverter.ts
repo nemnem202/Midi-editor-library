@@ -1,6 +1,6 @@
 import { ExerciseSchema } from "@/types/entities";
 import { Action } from "../types/actions";
-import type { Loop, State, Track } from "../types/instance";
+import type { Loop, State, Tick, Track } from "../types/instance";
 import { logger } from "./logger";
 import type { Midi } from "@tonejs/midi";
 import type { Note } from "@tonejs/midi/dist/Note";
@@ -230,12 +230,15 @@ function filterNotes(trackNotes: Note[]) {
   return finalNotes;
 }
 
-function extractBarTickMap(midi: Midi): Map<number, number> {
-  const map = new Map<number, number>();
+function extractBarTickMap(midi: Midi): Map<number, Tick[]> {
+  const map = new Map<number, Tick[]>();
+
   for (const event of midi.header.meta) {
     const match = event.text.match(/Bar_(\d+)/);
     if (match) {
-      map.set(parseInt(match[1], 10), event.ticks);
+      const barNumber = parseInt(match[1], 10);
+      const existing = map.get(barNumber);
+      map.set(barNumber, existing ? [...existing, event.ticks] : [event.ticks]);
     }
   }
   return map;

@@ -83,7 +83,7 @@ export interface State {
   display: Display;
   queuedActions: Set<Action>;
   rawMidiBuffer: Uint8Array;
-  measuresStarts: Map<number, Tick>;
+  measuresStarts: Map<number, Tick[]>;
 }
 
 export interface TrackedHistoryState {

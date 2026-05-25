@@ -8,6 +8,7 @@ import { useMidiStore } from "../stores/use-midi-store";
 import { convertTickToSeconds } from "../lib/utils";
 
 export class AudioCore {
+  private _baseTempo: number | null = null;
   public onMeasureUpdate: (measure: number) => void = () => {};
 
   private constructor(
@@ -66,12 +67,32 @@ export class AudioCore {
     return !this.sequencer.paused;
   }
 
+  private static parseBaseTempo(midiBuffer: ArrayBuffer): number {
+    const data = new Uint8Array(midiBuffer);
+    for (let i = 0; i < data.length - 6; i++) {
+      if (data[i] === 0xff && data[i + 1] === 0x51 && data[i + 2] === 0x03) {
+        const microsecondsPerBeat = (data[i + 3] << 16) | (data[i + 4] << 8) | data[i + 5];
+        return 60_000_000 / microsecondsPerBeat;
+      }
+    }
+    return 120;
+  }
+
+  captureBaseTempo(midiBuffer: ArrayBuffer) {
+    this._baseTempo = AudioCore.parseBaseTempo(midiBuffer);
+  }
+
+  get baseTempo(): number {
+    return this._baseTempo ?? this.sequencer.currentTempo;
+  }
+
   setPlaybackRate(bpm: number) {
     this.sequencer.playbackRate = bpm / this.sequencer.currentTempo;
   }
 
-  seekTo(tick: number, bpm: number, ppq: number) {
-    this.sequencer.currentTime = convertTickToSeconds(tick, bpm, ppq);
+  seekTo(tick: number, ppq: number) {
+    const nativeTempo = this._baseTempo ?? 0;
+    this.sequencer.currentTime = convertTickToSeconds(tick, nativeTempo, ppq);
   }
 
   allNotesOff() {
@@ -198,18 +219,25 @@ export class TransportController {
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
 
+    this.audio.captureBaseTempo(cleanBuffer as any);
+
+    const targetBpm = useMidiStore.getState().state?.config.bpm;
+    if (targetBpm) {
+      this.audio.sequencer.playbackRate = targetBpm / this.audio.baseTempo;
+    }
+
     if (config.loop) {
       this.audio.sequencer.loopCount = Infinity;
     }
 
     if (transport && transport.start > 0) {
-      this.audio.seekTo(transport.start, config.bpm, config.ppq);
+      this.audio.seekTo(transport.start, config.ppq);
     }
 
     this.audio.onLoopEnd = () => {
       if (!config.loop) return;
       this._loopJumping = true;
-      this.audio.seekTo(config.loop.start, config.bpm, config.ppq);
+      this.audio.seekTo(config.loop.start, config.ppq);
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           this._loopJumping = false;
@@ -257,7 +285,7 @@ export class TransportController {
     const state = this.store.midiState;
     if (state) {
       const { config, transport } = state;
-      this.audio.seekTo(transport.start, config.bpm, config.ppq);
+      this.audio.seekTo(transport.start, config.ppq);
     }
   }
 
@@ -285,7 +313,7 @@ export class TransportController {
 
     if (flags.has(Action.SET_BPM)) {
       const targetBpm = this.store.midiState.config.bpm;
-      this.audio.sequencer.playbackRate = targetBpm / this.audio.sequencer.currentTempo;
+      this.audio.sequencer.playbackRate = targetBpm / this.audio.baseTempo;
     }
     if (
       flags.has(Action.SET_TRANSPORT_START) ||
@@ -294,13 +322,13 @@ export class TransportController {
       const { config, transport, measuresStarts } = this.store.midiState;
 
       this._seekPending = true;
-      this.audio.seekTo(transport.start, config.bpm, config.ppq);
+      this.audio.seekTo(transport.start, config.ppq);
       let closestMeasure = 0;
 
       let minDiff = Number.MAX_VALUE;
 
       for (const [mIndex, mTick] of measuresStarts.entries()) {
-        const diff = Math.abs(mTick - transport.start);
+        const diff = Math.abs(mTick[0] - transport.start);
 
         if (diff < minDiff) {
           minDiff = diff;

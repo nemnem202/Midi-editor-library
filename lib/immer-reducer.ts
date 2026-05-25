@@ -137,6 +137,16 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
 
     case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
-      draft.transport.start = draft.measuresStarts.get(action.measureIndex) ?? 0;
+      const measureIndexes = draft.measuresStarts.get(action.measureIndex);
+      draft.transport.start = measureIndexes ? measureIndexes[0] : 0;
+      logger.info(
+        "Measure index",
+        action.measureIndex,
+        "Measures starts found: ",
+        draft.measuresStarts.get(action.measureIndex),
+        "Measures starts : ",
+        draft.measuresStarts
+      );
+      break;
   }
 };
