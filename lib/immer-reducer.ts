@@ -139,7 +139,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
     case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
       const measureIndexes = draft.measuresStarts.get(action.measureIndex);
       draft.transport.start = measureIndexes ? measureIndexes[0] : 0;
-      draft.transport.currentMeasureIndex = measureIndexes ? measureIndexes[0] : 0;
+      draft.transport.currentMeasureIndex = action.measureIndex;
       break;
 
     case Action.SET_COUNT_INT:

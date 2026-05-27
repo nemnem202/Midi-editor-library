@@ -3,7 +3,7 @@ import { Action, MidiAction } from "@/midi-editor/types/actions";
 import { State } from "@/midi-editor/types/instance";
 
 export class StoreConnector {
-  midiState: State | null = null;
+  state: State | null = null;
   dispatch: (action: MidiAction) => void = () => {};
 
   private readonly dirtyFlags = new Set<Action>();
@@ -11,7 +11,7 @@ export class StoreConnector {
 
   constructor(onActionsQueued: (flags: Set<Action>) => void) {
     this.unsubscribe = useMidiStore.subscribe((store) => {
-      this.midiState = store.state;
+      this.state = store.state;
       this.dispatch = store.dispatch;
       if (store.state) store.state.queuedActions.forEach((action) => this.dirtyFlags.add(action));
       onActionsQueued(this.dirtyFlags);
