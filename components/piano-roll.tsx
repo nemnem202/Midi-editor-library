@@ -4,6 +4,8 @@ import { useMidiStore } from "../stores/use-midi-store";
 import type { PianoRollConfig } from "../types/general";
 import useScreen from "@/hooks/use-screen";
 import { TrackSelect } from "@/components/features/game/game-assets";
+import { ZoomInButton, ZoomOutButton } from "@/components/ui/custom-buttons";
+import { Action } from "../types/actions";
 
 export default function PianoRoll() {
   const state = useMidiStore((s) => s.state);
@@ -28,6 +30,7 @@ function Content() {
   const engineRef = useRef<PianoRollEngine | null>(null);
   const { size } = useScreen();
   const screen = useScreen();
+  const { dispatch, state } = useMidiStore();
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (!rootDiv.current) return;
@@ -69,7 +72,27 @@ function Content() {
   return (
     <div className="flex flex-col size-full gap-2">
       {screen.size === "sm" && screen.orientation === "vertical" && (
-        <div className="w-full flex justify-end">
+        <div className="w-full flex justify-between">
+          <div className="flex gap-2">
+            <ZoomInButton
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({
+                  type: Action.ZoomY,
+                  zoomY: Math.min(100, (state?.display.zoomY ?? 0) + 10),
+                });
+              }}
+            />
+            <ZoomOutButton
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({
+                  type: Action.ZoomY,
+                  zoomY: Math.max(0, (state?.display.zoomY ?? 0) - 10),
+                });
+              }}
+            />
+          </div>
           <div className="w-1/2">
             <TrackSelect />
           </div>
