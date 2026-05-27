@@ -103,6 +103,8 @@ export default class SoundEngine {
           break;
         case Action.SET_LOOP:
           break;
+        case Action.CHANGE_TRACK_VOLUME:
+          this.changeTracksVolume(state);
       }
     }
   }
@@ -237,6 +239,13 @@ export default class SoundEngine {
     this.unit.sequencer.currentTime = 0;
     this.currentMeasure = 0;
     SoundEngine.onMeasureChange?.(this.currentMeasure);
+  }
+
+  private changeTracksVolume(state: State) {
+    for (const track of state.tracks) {
+      this.unit.synth.muteChannel(track.channel, track.muted);
+      this.unit.synth.controllerChange(track.channel, 7, track.volume);
+    }
   }
 
   public static get() {
