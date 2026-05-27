@@ -35,6 +35,7 @@ export enum Action {
   SET_TOTAL_DURATION,
   SET_TRACKLIST_POSITION,
   SET_TRANSPORT_STATUS,
+  SET_CURRENT_MEASURE,
 
   CHANGE_CURRENT_TRACK,
   ADD_TRACK,
@@ -92,4 +93,5 @@ export type MidiAction = (
   | { type: Action.SET_TRANSPOSITION_PRACTICE; transposition: number }
   | { type: Action.SET_REPEATS; repeats: number }
   | { type: Action.SET_COUNT_INT; countin: boolean }
+  | { type: Action.SET_CURRENT_MEASURE; index: number }
 ) & { skipHistory?: boolean };

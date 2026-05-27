@@ -18,10 +18,10 @@ export default class SoundEngine {
   private countInController: AbortController | null = null;
   private noteTracker: NoteTracker | null = null;
 
-  public currentMeasure = 0;
+  // public currentMeasure = 0;
   private _seekPending = false;
 
-  public static onMeasureChange: ((m: number) => void) | null = null;
+  // public static onMeasureChange: ((m: number) => void) | null = null;
 
   private constructor() {
     this.setupStoreSubscription();
@@ -68,8 +68,11 @@ export default class SoundEngine {
 
       if (text.includes("Bar_")) {
         if (this._seekPending) return;
-        this.currentMeasure = parseInt(text.split("_")[1], 10);
-        SoundEngine.onMeasureChange?.(this.currentMeasure);
+        const currentMeasure = parseInt(text.split("_")[1], 10);
+        // SoundEngine.onMeasureChange?.(currentMeasure);
+        useMidiStore
+          .getState()
+          .dispatch({ type: Action.SET_CURRENT_MEASURE, index: currentMeasure });
       } else if (text === "LoopEnd") {
         logger.info("Sound engine loop end");
         this.handleLoopIteration();
@@ -137,9 +140,7 @@ export default class SoundEngine {
     if (status === "playing") {
       this.play(state);
     } else if (status === "paused") {
-      this.stopCountIn();
-      this.unit.sequencer.pause();
-      this.handleSeek(state);
+      this.pause(state);
     } else if (status === "reset") {
       this.reset();
     }
@@ -172,6 +173,18 @@ export default class SoundEngine {
     }
   }
 
+  private pause(state: State) {
+    this.stopCountIn();
+    this.unit.sequencer.pause();
+
+    state.config.loop &&
+      useMidiStore.getState().dispatch({
+        type: Action.SET_LOOP,
+        loop: { ...state.config.loop, currentRepeatIndex: 0 },
+      });
+    this.handleSeek(state);
+  }
+
   private handleLoopIteration() {
     const state = useMidiStore.getState().state;
     if (!state || !state.config.loop) return;
@@ -182,7 +195,8 @@ export default class SoundEngine {
       logger.info("All repeats done, stopping.");
       this.unit.sequencer.pause();
       this.unit.sequencer.currentTime = 0;
-      this.currentMeasure = 0;
+
+      useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });
 
       useMidiStore.getState().dispatch({
         type: Action.SET_LOOP,
@@ -220,7 +234,8 @@ export default class SoundEngine {
         closestMeasure = mIndex;
       }
     }
-    this.currentMeasure = closestMeasure;
+
+    useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: closestMeasure });
 
     requestAnimationFrame(() => {
       this._seekPending = false;
@@ -237,8 +252,8 @@ export default class SoundEngine {
 
     this.unit.sequencer.pause();
     this.unit.sequencer.currentTime = 0;
-    this.currentMeasure = 0;
-    SoundEngine.onMeasureChange?.(this.currentMeasure);
+    useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });
+    // SoundEngine.onMeasureChange?.(this.currentMeasure);
   }
 
   private changeTracksVolume(state: State) {
@@ -267,7 +282,8 @@ export default class SoundEngine {
   public clearNotesEvents() {
     this.noteTracker?.clearNotesEvents();
   }
-  public setCurrentMeasure(m: number) {
-    this.currentMeasure = m;
-  }
+  // public setCurrentMeasure(m: number) {
+  //   this.currentMeasure = m;
+
+  // }
 }

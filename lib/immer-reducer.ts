@@ -139,14 +139,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
     case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
       const measureIndexes = draft.measuresStarts.get(action.measureIndex);
       draft.transport.start = measureIndexes ? measureIndexes[0] : 0;
-      logger.info(
-        "Measure index",
-        action.measureIndex,
-        "Measures starts found: ",
-        draft.measuresStarts.get(action.measureIndex),
-        "Measures starts : ",
-        draft.measuresStarts
-      );
+      draft.transport.currentMeasureIndex = measureIndexes ? measureIndexes[0] : 0;
       break;
 
     case Action.SET_COUNT_INT:
@@ -166,5 +159,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
     case Action.SET_TRANSPOSITION_PRACTICE:
       draft.config.transpositionPractice = action.transposition;
       break;
+    case Action.SET_CURRENT_MEASURE:
+      draft.transport.currentMeasureIndex = action.index;
   }
 };
