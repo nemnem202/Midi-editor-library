@@ -7,6 +7,7 @@ import { useMidiStore } from "../../stores/use-midi-store";
 import { SequencerUnit } from "./sequencerUnit";
 import { PracticeLogic } from "./practiceLogic";
 import { NoteEvent, NoteTracker } from "./noteTracker";
+import { logger } from "@/lib/logger";
 
 export default class SoundEngine {
   private static instance: SoundEngine | null = null;
@@ -18,7 +19,6 @@ export default class SoundEngine {
   private noteTracker: NoteTracker | null = null;
 
   public currentMeasure = 0;
-  private _loopJumping = false;
   private _seekPending = false;
 
   public static onMeasureChange: ((m: number) => void) | null = null;
@@ -31,7 +31,6 @@ export default class SoundEngine {
     if (this.instance) return this.instance;
 
     this.context = new AudioContext();
-
     const response = await fetch(soundfont);
     const sFbuffer = await response.arrayBuffer();
     await WorkerSynthesizer.registerPlaybackWorklet(this.context);
@@ -47,6 +46,7 @@ export default class SoundEngine {
     synth.connect(this.context.destination);
 
     const sequencer = new Sequencer(synth);
+    sequencer.loopCount = Infinity;
 
     this.instance = new SoundEngine();
     this.instance.unit = new SequencerUnit(synth, sequencer);
@@ -65,19 +65,15 @@ export default class SoundEngine {
       if (midiMsg.statusByte !== 0x06) return;
 
       const text = new TextDecoder().decode(midiMsg.data);
+
       if (text.includes("Bar_")) {
         if (this._seekPending) return;
         this.currentMeasure = parseInt(text.split("_")[1], 10);
         SoundEngine.onMeasureChange?.(this.currentMeasure);
       } else if (text === "LoopEnd") {
+        logger.info("Sound engine loop end");
         this.handleLoopIteration();
       }
-    });
-
-    this.unit.sequencer.eventHandler.addEvent("songEnded", "engine", () => {
-      if (this._loopJumping) return;
-      this.reset();
-      useMidiStore.getState().dispatch({ type: Action.SET_TRANSPORT_STATUS, status: "reset" });
     });
   }
 
@@ -105,8 +101,7 @@ export default class SoundEngine {
         case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
           this.handleSeek(state);
           break;
-        case Action.SET_REPEATS:
-          this.unit.sequencer.loopCount = state.config.repeats;
+        case Action.SET_LOOP:
           break;
       }
     }
@@ -124,9 +119,10 @@ export default class SoundEngine {
     this.unit.sequencer.loadNewSongList([
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
+    this.unit.sequencer.loopCount = Infinity;
+
     this.unit.captureBaseTempo(cleanBuffer as any);
     this.unit.setPlaybackRate(config.bpm);
-    this.unit.sequencer.loopCount = config.repeats;
 
     if (transport.start > 0) {
       this.unit.seek(transport.start, config.ppq);
@@ -134,20 +130,21 @@ export default class SoundEngine {
   }
 
   private async syncTransport(state: State) {
-    const status = state.transport.status;
+    const { status } = state.transport;
 
     if (status === "playing") {
-      if (SoundEngine.context?.state === "suspended") await SoundEngine.context.resume();
-      this.playWithCountIn(state);
+      this.play(state);
     } else if (status === "paused") {
       this.stopCountIn();
       this.unit.sequencer.pause();
+      this.handleSeek(state);
     } else if (status === "reset") {
       this.reset();
     }
   }
 
-  private async playWithCountIn(state: State) {
+  private async play(state: State) {
+    logger.info("Play, is it last? ", this.practice.isLastIteration(state));
     this.stopCountIn();
 
     if (state.config.countIn) {
@@ -158,7 +155,7 @@ export default class SoundEngine {
       try {
         for (let i = 0; i < 4; i++) {
           this.unit.synth.noteOn(9, 76, 100);
-          await new Promise((res, rej) => {
+          await new Promise<void>((res, rej) => {
             const t = setTimeout(res, msPerBeat);
             signal.addEventListener("abort", () => {
               clearTimeout(t);
@@ -167,9 +164,7 @@ export default class SoundEngine {
           });
         }
         this.unit.sequencer.play();
-      } catch (e) {
-        /* Aborted */
-      }
+      } catch {}
     } else {
       this.unit.sequencer.play();
     }
@@ -182,27 +177,32 @@ export default class SoundEngine {
     const next = this.practice.getNextIterationParams(state);
 
     if (!next) {
-      this._loopJumping = false;
-      return; // Le sequencer s'arrêtera via songEnded
+      logger.info("All repeats done, stopping.");
+      this.unit.sequencer.pause();
+      this.unit.sequencer.currentTime = 0;
+      this.currentMeasure = 0;
+
+      useMidiStore.getState().dispatch({
+        type: Action.SET_LOOP,
+        loop: { ...state.config.loop, currentRepeatIndex: 0 },
+      });
+      useMidiStore.getState().dispatch({
+        type: Action.SET_TRANSPORT_STATUS,
+        status: "reset",
+      });
+      return;
     }
 
-    this._loopJumping = true;
+    logger.info("Next iteration, repeatIndex:", next.repeatIndex);
 
-    // Update Store
-    useMidiStore.getState().dispatch({
-      type: Action.SET_LOOP,
-      loop: { ...state.config.loop, currentRepeatIndex: next.repeatIndex },
-    });
-
-    // Apply Hardware
     this.unit.setPlaybackRate(next.targetBpm);
     this.unit.transposeAllChannels(state, next.targetTranspose);
     this.unit.seek(next.startTick, state.config.ppq);
 
-    // Reset loop jumping flag après un court délai
-    setTimeout(() => {
-      this._loopJumping = false;
-    }, 100);
+    useMidiStore.getState().dispatch({
+      type: Action.SET_LOOP,
+      loop: { ...state.config.loop, currentRepeatIndex: next.repeatIndex },
+    });
   }
 
   private handleSeek(state: State) {
@@ -232,15 +232,17 @@ export default class SoundEngine {
 
   public reset() {
     this.stopCountIn();
+
     this.unit.sequencer.pause();
     this.unit.sequencer.currentTime = 0;
     this.currentMeasure = 0;
-    this._loopJumping = false;
+    SoundEngine.onMeasureChange?.(this.currentMeasure);
   }
 
   public static get() {
     return this.instance;
   }
+
   public get currentTime() {
     return this.unit.sequencer.currentHighResolutionTime;
   }
@@ -255,9 +257,6 @@ export default class SoundEngine {
   }
   public clearNotesEvents() {
     this.noteTracker?.clearNotesEvents();
-  }
-  public changeChannelVolume(ch: number, vol: number) {
-    this.unit.synth.controllerChange(ch, 7, vol);
   }
   public setCurrentMeasure(m: number) {
     this.currentMeasure = m;
