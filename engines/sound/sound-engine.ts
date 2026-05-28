@@ -1,6 +1,6 @@
 import { Sequencer, WorkerSynthesizer } from "spessasynth_lib";
 import { Action } from "../../types/actions";
-// @ts-ignore
+// @ts-expect-error
 import soundfont from "@/assets/soundfonts/GeneralUserGS.sf3";
 import type { State } from "../../types/instance";
 import { useMidiStore } from "../../stores/use-midi-store";
@@ -19,7 +19,6 @@ export default class SoundEngine {
   private countInController: AbortController | null = null;
   private noteTracker: NoteTracker | null = null;
 
-  // public currentMeasure = 0;
   private _seekPending = false;
 
   private _metaBuffer = new Map<string, string>();
@@ -68,7 +67,6 @@ export default class SoundEngine {
 
       const text = new TextDecoder().decode(midiMsg.data);
 
-      // Extraction du type et de la donnée
       let type = "";
       let data = "";
 
@@ -84,10 +82,8 @@ export default class SoundEngine {
       }
 
       if (type) {
-        // On écrase la valeur précédente pour ce type : "Latest wins"
         this._metaBuffer.set(type, data);
 
-        // On planifie le traitement pour la fin de la frame JS
         if (this._batchFrame === null) {
           this._batchFrame = requestAnimationFrame(() => this.flushMetaEvents());
         }
@@ -302,7 +298,6 @@ export default class SoundEngine {
     this.unit.sequencer.pause();
     this.unit.sequencer.currentTime = 0;
     useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });
-    // SoundEngine.onMeasureChange?.(this.currentMeasure);
   }
 
   private changeTracksVolume(state: State) {
@@ -331,8 +326,4 @@ export default class SoundEngine {
   public clearNotesEvents() {
     this.noteTracker?.clearNotesEvents();
   }
-  // public setCurrentMeasure(m: number) {
-  //   this.currentMeasure = m;
-
-  // }
 }
