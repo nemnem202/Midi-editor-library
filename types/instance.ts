@@ -32,6 +32,8 @@ export interface Config {
   transpositionPractice: number;
   currentMeasureOverline: boolean;
   loop: Loop | null;
+  displayPianoDiagrams: boolean;
+  displayGuitarDiagrams: boolean;
 }
 
 export interface Loop {

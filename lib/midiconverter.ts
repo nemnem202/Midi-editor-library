@@ -107,6 +107,8 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
       repeats: 0,
       transposition: 0,
       transpositionPractice: 0,
+      displayGuitarDiagrams: false,
+      displayPianoDiagrams: true,
     },
     transport: {
       start: 0,

@@ -39,6 +39,9 @@ export enum Action {
 
   DISPLAY_CURRENT_MEASURE,
 
+  SHOW_PIANO_DIAGRAMS,
+  SHOW_GUITAR_DIAGRAMS,
+
   CHANGE_CURRENT_TRACK,
   ADD_TRACK,
   REMOVE_TRACK,
@@ -97,4 +100,6 @@ export type MidiAction = (
   | { type: Action.SET_COUNT_INT; countin: boolean }
   | { type: Action.SET_CURRENT_MEASURE; index: number }
   | { type: Action.DISPLAY_CURRENT_MEASURE; display: boolean }
+  | { type: Action.SHOW_GUITAR_DIAGRAMS; display: boolean }
+  | { type: Action.SHOW_PIANO_DIAGRAMS; display: boolean }
 ) & { useHistory?: boolean };

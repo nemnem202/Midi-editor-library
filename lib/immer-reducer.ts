@@ -164,5 +164,12 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
     case Action.DISPLAY_CURRENT_MEASURE:
       draft.config.currentMeasureOverline = action.display;
+      break;
+    case Action.SHOW_GUITAR_DIAGRAMS:
+      draft.config.displayGuitarDiagrams = action.display;
+      break;
+    case Action.SHOW_PIANO_DIAGRAMS:
+      draft.config.displayPianoDiagrams = action.display;
+      break;
   }
 };
