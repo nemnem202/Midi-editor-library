@@ -182,9 +182,9 @@ export default class SoundEngine {
   }
 
   private async play(state: State) {
-    logger.info("Play, is it last? ", this.practice.isLastIteration(state));
     this.stopCountIn();
     this.unit.transposeAllChannels(state);
+    this.unit.setPlaybackRate(state.config.bpm);
     if (state.config.countIn) {
       this.countInController = new AbortController();
       const { signal } = this.countInController;
