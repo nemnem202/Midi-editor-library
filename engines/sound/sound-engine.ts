@@ -8,6 +8,7 @@ import { SequencerUnit } from "./sequencerUnit";
 import { PracticeLogic } from "./practiceLogic";
 import { NoteEvent, NoteTracker } from "./noteTracker";
 import { logger } from "@/lib/logger";
+import { Chord } from "@/types/music";
 
 export default class SoundEngine {
   private static instance: SoundEngine | null = null;
@@ -21,7 +22,8 @@ export default class SoundEngine {
   // public currentMeasure = 0;
   private _seekPending = false;
 
-  // public static onMeasureChange: ((m: number) => void) | null = null;
+  private _metaBuffer = new Map<string, string>();
+  private _batchFrame: number | null = null;
 
   private constructor() {
     this.setupStoreSubscription();
@@ -66,17 +68,67 @@ export default class SoundEngine {
 
       const text = new TextDecoder().decode(midiMsg.data);
 
+      // Extraction du type et de la donnée
+      let type = "";
+      let data = "";
+
       if (text.includes("Bar_")) {
-        if (this._seekPending) return;
-        const currentMeasure = parseInt(text.split("_")[1], 10);
-        useMidiStore
-          .getState()
-          .dispatch({ type: Action.SET_CURRENT_MEASURE, index: currentMeasure });
+        type = "Bar";
+        data = text.split("_")[1];
       } else if (text === "LoopEnd") {
-        logger.info("Sound engine loop end");
+        type = "LoopEnd";
+        data = "true";
+      } else if (text.includes("Chords_")) {
+        type = "Chords";
+        data = text.split("_")[1];
+      }
+
+      if (type) {
+        // On écrase la valeur précédente pour ce type : "Latest wins"
+        this._metaBuffer.set(type, data);
+
+        // On planifie le traitement pour la fin de la frame JS
+        if (this._batchFrame === null) {
+          this._batchFrame = requestAnimationFrame(() => this.flushMetaEvents());
+        }
+      }
+    });
+  }
+
+  private flushMetaEvents() {
+    this._batchFrame = null;
+
+    // Si on est en train de chercher (seek), on ignore souvent les marqueurs intermédiaires
+    // car handleSeek calcule déjà la position finale.
+    if (this._seekPending) {
+      this._metaBuffer.clear();
+      return;
+    }
+
+    this._metaBuffer.forEach((data, type) => {
+      if (type === "Bar") {
+        const currentMeasure = parseInt(data, 10);
+        useMidiStore.getState().dispatch({
+          type: Action.SET_CURRENT_MEASURE,
+          index: currentMeasure,
+        });
+      } else if (type === "Chords") {
+        try {
+          const chords = JSON.parse(data);
+          useMidiStore.getState().dispatch({
+            type: Action.SET_CURRENT_CHORDS,
+            chords: chords as Chord[],
+          });
+        } catch (e) {
+          logger.error("JSON Chord parsing error");
+        }
+      } else if (type === "LoopEnd") {
+        logger.info("Sound engine loop end (batched)");
         this.handleLoopIteration();
       }
     });
+
+    this._metaBuffer.clear();
   }
 
   private setupStoreSubscription() {
@@ -238,7 +290,7 @@ export default class SoundEngine {
 
     setTimeout(() => {
       this._seekPending = false;
-    }, 50);
+    }, 20);
   }
 
   private stopCountIn() {

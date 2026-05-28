@@ -2,6 +2,7 @@ import type { InstrumentJSON } from "@tonejs/midi/dist/Instrument";
 import type { Action } from "./actions";
 import type { TrackJSON } from "@tonejs/midi";
 import { MidiInstrumentFamily, MidiInstrumentNumber } from "./instruments";
+import { Chord } from "@/types/music";
 
 export type Bpm = number;
 export type Signature = [number, number];
@@ -50,6 +51,7 @@ export interface Transport {
   currentMeasureIndex: number;
   totalDuration: Tick;
   status: TransportStatus;
+  currentChords: Chord[];
 }
 
 export type TrackId = number;

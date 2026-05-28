@@ -116,6 +116,7 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
       status: "paused",
       playbackPosition: 0,
       currentMeasureIndex: 0,
+      currentChords: [],
     },
     display: {
       zoomY: 50,

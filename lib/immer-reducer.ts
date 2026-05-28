@@ -171,5 +171,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
     case Action.SHOW_PIANO_DIAGRAMS:
       draft.config.displayPianoDiagrams = action.display;
       break;
+    case Action.SET_CURRENT_CHORDS:
+      draft.transport.currentChords = action.chords;
   }
 };
