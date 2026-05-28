@@ -37,6 +37,8 @@ export enum Action {
   SET_TRANSPORT_STATUS,
   SET_CURRENT_MEASURE,
 
+  DISPLAY_CURRENT_MEASURE,
+
   CHANGE_CURRENT_TRACK,
   ADD_TRACK,
   REMOVE_TRACK,
@@ -94,4 +96,5 @@ export type MidiAction = (
   | { type: Action.SET_REPEATS; repeats: number }
   | { type: Action.SET_COUNT_INT; countin: boolean }
   | { type: Action.SET_CURRENT_MEASURE; index: number }
+  | { type: Action.DISPLAY_CURRENT_MEASURE; display: boolean }
 ) & { useHistory?: boolean };

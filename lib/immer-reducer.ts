@@ -161,5 +161,8 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
     case Action.SET_CURRENT_MEASURE:
       draft.transport.currentMeasureIndex = action.index;
+      break;
+    case Action.DISPLAY_CURRENT_MEASURE:
+      draft.config.currentMeasureOverline = action.display;
   }
 };
