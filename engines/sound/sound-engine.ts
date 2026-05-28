@@ -98,8 +98,6 @@ export default class SoundEngine {
   private flushMetaEvents() {
     this._batchFrame = null;
 
-    // Si on est en train de chercher (seek), on ignore souvent les marqueurs intermédiaires
-    // car handleSeek calcule déjà la position finale.
     if (this._seekPending) {
       this._metaBuffer.clear();
       return;
