@@ -2,6 +2,7 @@ import type { InstrumentJSON } from "@tonejs/midi/dist/Instrument";
 import type { Action } from "./actions";
 import type { TrackJSON } from "@tonejs/midi";
 import { MidiInstrumentFamily, MidiInstrumentNumber } from "./instruments";
+import { Chord } from "@/types/music";
 
 export type Bpm = number;
 export type Signature = [number, number];
@@ -32,6 +33,8 @@ export interface Config {
   transpositionPractice: number;
   currentMeasureOverline: boolean;
   loop: Loop | null;
+  displayPianoDiagrams: boolean;
+  displayGuitarDiagrams: boolean;
 }
 
 export interface Loop {

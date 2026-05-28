@@ -122,7 +122,6 @@ export class EditorPlayheadRenderer extends PlayheadRenderer {
     this.dispatch({
       type: Action.SET_TRANSPORT_START,
       start: Math.min(Math.max(local.x, 0), this.state.transport.totalDuration),
-      skipHistory: true,
     });
   }
 }

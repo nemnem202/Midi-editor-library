@@ -35,7 +35,7 @@ import { Action } from "../types/actions";
 import { useMidiStore } from "../stores/use-midi-store";
 import { Event } from "../types/events";
 import CursorRenderer from "../renderers/cursor-renderer";
-import SoundEngine from "./sound-engine";
+import SoundEngine from "./sound/sound-engine";
 import type GrayedNotesRenderer from "../renderers/grayed-notes-renderer";
 import {
   EditorGrayedNotesRenderer,
@@ -236,9 +236,6 @@ export abstract class PianoRollEngine {
     if ([...actions].some((a) => NOTE_ACTIONS.includes(a))) {
       this.notesRenderer.draw();
     }
-    if ([...actions].some((a) => MIDI_EVENT_CHANGE_ACTIONS.includes(a))) {
-      this.soundEngine?.updateMidiEvents();
-    }
     if ([...actions].some((a) => a === Action.CHANGE_CURRENT_TRACK)) {
       this.grayedNotesRenderer.draw();
       this.pianoKeyboardRenderer.draw();
@@ -259,6 +256,10 @@ export abstract class PianoRollEngine {
       const { start } = this.state.transport;
 
       this.playheadRenderer.drawTracklist();
+      this.pianoKeyboardRenderer.draw();
+    }
+
+    if (actions.has(Action.SET_TRANSPOSITION)) {
       this.pianoKeyboardRenderer.draw();
     }
 
@@ -489,9 +490,9 @@ export class PlayerEngine extends PianoRollEngine {
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
     if (!currentTrack) return;
 
-    const notesEventsCurrentTrack = notesEvents.filter(
-      (note) => note.channel === currentTrack.channel
-    );
+    const notesEventsCurrentTrack = notesEvents
+      .filter((note) => note.channel === currentTrack.channel)
+      .map((n) => ({ ...n, midiNote: n.midiNote + config.transposition }));
 
     if (notesEventsCurrentTrack.length > 0) {
       this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);

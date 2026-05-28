@@ -13,6 +13,7 @@ import {
   selectNote,
   selectNotes,
   unSelectAllNotes,
+  transpose,
 } from "../actions/note";
 import { setBpm, setSignature, setSubdivision } from "../actions/config";
 import {
@@ -139,14 +140,37 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
     case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
       const measureIndexes = draft.measuresStarts.get(action.measureIndex);
       draft.transport.start = measureIndexes ? measureIndexes[0] : 0;
-      logger.info(
-        "Measure index",
-        action.measureIndex,
-        "Measures starts found: ",
-        draft.measuresStarts.get(action.measureIndex),
-        "Measures starts : ",
-        draft.measuresStarts
-      );
+      draft.transport.currentMeasureIndex = action.measureIndex;
+      break;
+
+    case Action.SET_COUNT_INT:
+      logger.info("Set count in", action.countin);
+      draft.config.countIn = action.countin;
+      break;
+    case Action.SET_REPEATS:
+      draft.config.repeats = action.repeats;
+      break;
+    case Action.SET_BPM_PRACTICE:
+      logger.info("Bpm practice update", action.bpm);
+      draft.config.bpmPractice = action.bpm;
+      break;
+    case Action.SET_TRANSPOSITION:
+      transpose(draft, action.transposition);
+      break;
+    case Action.SET_TRANSPOSITION_PRACTICE:
+      draft.config.transpositionPractice = action.transposition;
+      break;
+    case Action.SET_CURRENT_MEASURE:
+      draft.transport.currentMeasureIndex = action.index;
+      break;
+    case Action.DISPLAY_CURRENT_MEASURE:
+      draft.config.currentMeasureOverline = action.display;
+      break;
+    case Action.SHOW_GUITAR_DIAGRAMS:
+      draft.config.displayGuitarDiagrams = action.display;
+      break;
+    case Action.SHOW_PIANO_DIAGRAMS:
+      draft.config.displayPianoDiagrams = action.display;
       break;
   }
 };

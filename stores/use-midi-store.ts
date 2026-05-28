@@ -3,6 +3,7 @@ import { produce, enableMapSet } from "immer";
 import { midiReducer } from "../lib/immer-reducer";
 import type { State } from "../types/instance";
 import { Action, type MidiAction } from "../types/actions";
+import { logger } from "@/lib/logger";
 
 enableMapSet();
 
@@ -49,10 +50,9 @@ export const useMidiStore = create<MidiStore>((set, get) => ({
     const { state, undoStack } = get();
     if (!state) return;
 
-    const isHistoryAction = !action.skipHistory;
-
     let newUndoStack = undoStack;
-    if (isHistoryAction) {
+    if (action.useHistory) {
+      logger.info("Action placed in history, state has been deep cloned");
       newUndoStack = [...undoStack, deepCloneState(state)].slice(-50);
     }
 
@@ -67,7 +67,7 @@ export const useMidiStore = create<MidiStore>((set, get) => ({
     set({
       state: nextState,
       undoStack: newUndoStack,
-      redoStack: isHistoryAction ? [] : get().redoStack,
+      redoStack: action.useHistory ? [] : get().redoStack,
     });
   },
 

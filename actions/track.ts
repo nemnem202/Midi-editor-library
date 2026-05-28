@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import SoundEngine from "../engines/sound-engine";
+import SoundEngine from "../engines/sound/sound-engine";
 import type { State, Track, TrackId } from "../types/instance";
 
 export function changeCurrentTrack(state: State, trackId: TrackId) {
@@ -21,7 +21,6 @@ export function changeTrackVolume(state: State, trackId: TrackId, volume: number
   const index = state.tracks.findIndex((track) => track.id === trackId);
   if (index >= 0) {
     state.tracks[index].volume = Math.min(100, Math.max(0, volume));
-    SoundEngine.get()?.changeChannelVolume(state.tracks[index].channel, state.tracks[index].volume);
   }
 }
 
