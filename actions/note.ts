@@ -1,4 +1,4 @@
-import type { MidiData, NoteIndex } from "../types/instance";
+import type { MidiData, NoteIndex, State } from "../types/instance";
 import { grow } from "../lib/array-helpers";
 
 export function selectNote(midiData: MidiData, index: NoteIndex) {
@@ -98,4 +98,19 @@ export function addNotes(
   for (const note of notes) {
     addNote(midiData, note.pitch, note.start, note.duration, note.velocity);
   }
+}
+
+export function transpose(state: State, transposition: number) {
+  const offset = transposition - state.config.transposition;
+  if (offset === 0) return;
+
+  for (let trackIndex = 0; trackIndex < state.tracks.length; trackIndex++) {
+    const pitches = state.tracks[trackIndex].data.pitches;
+    const capacity = state.tracks[trackIndex].data.capacity;
+    for (let noteIndex = 0; noteIndex < capacity; noteIndex++) {
+      pitches[noteIndex] += offset;
+    }
+  }
+
+  state.config.transposition = transposition;
 }

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { convertTickToSeconds } from "@/midi-editor/lib/utils";
 import { State } from "@/midi-editor/types/instance";
 import { Sequencer, WorkerSynthesizer } from "spessasynth_lib";
@@ -29,8 +30,15 @@ export class SequencerUnit {
     this.sequencer.playbackRate = bpm / this._baseTempo;
   }
 
-  transposeAllChannels(state: State, semitones: number) {
-    if (semitones === 0) return;
+  transposeAllChannels(state: State, forceCurrentRepeat?: number) {
+    let semitones = state.config.transposition;
+
+    if (state.config.loop) {
+      const currentRepeat: number = forceCurrentRepeat
+        ? forceCurrentRepeat
+        : state.config.loop.currentRepeatIndex;
+      semitones += state.config.transpositionPractice * currentRepeat;
+    }
     for (const track of state.tracks) {
       this.synth.transposeChannel(track.channel, semitones, false);
     }

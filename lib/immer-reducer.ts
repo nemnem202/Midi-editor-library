@@ -13,6 +13,7 @@ import {
   selectNote,
   selectNotes,
   unSelectAllNotes,
+  transpose,
 } from "../actions/note";
 import { setBpm, setSignature, setSubdivision } from "../actions/config";
 import {
@@ -154,7 +155,7 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       draft.config.bpmPractice = action.bpm;
       break;
     case Action.SET_TRANSPOSITION:
-      draft.config.transposition = action.transposition;
+      transpose(draft, action.transposition);
       break;
     case Action.SET_TRANSPOSITION_PRACTICE:
       draft.config.transpositionPractice = action.transposition;
