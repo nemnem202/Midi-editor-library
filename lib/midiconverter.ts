@@ -117,7 +117,6 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
       status: "paused",
       playbackPosition: 0,
       currentMeasureIndex: 0,
-      currentChords: extractFirstChords(file),
     },
     display: {
       zoomY: 50,
@@ -246,20 +245,6 @@ function extractBarTickMap(midi: Midi): Map<number, Tick[]> {
     }
   }
   return map;
-}
-
-function extractFirstChords(midi: Midi): Chord[] {
-  for (const event of midi.header.meta) {
-    if (event.text.includes("Chords")) {
-      try {
-        const chords = JSON.parse(event.text.split("_")[1]);
-        return chords as Chord[];
-      } catch (e) {
-        continue;
-      }
-    }
-  }
-  return [];
 }
 
 function extractLoop(midi: Midi): Loop | null {

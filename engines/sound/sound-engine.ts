@@ -76,9 +76,6 @@ export default class SoundEngine {
       } else if (text === "LoopEnd") {
         type = "LoopEnd";
         data = "true";
-      } else if (text.includes("Chords_")) {
-        type = "Chords";
-        data = text.split("_")[1];
       }
 
       if (type) {
@@ -106,16 +103,6 @@ export default class SoundEngine {
           type: Action.SET_CURRENT_MEASURE,
           index: currentMeasure,
         });
-      } else if (type === "Chords") {
-        try {
-          const chords = JSON.parse(data);
-          useMidiStore.getState().dispatch({
-            type: Action.SET_CURRENT_CHORDS,
-            chords: chords as Chord[],
-          });
-        } catch (e) {
-          logger.error("JSON Chord parsing error");
-        }
       } else if (type === "LoopEnd") {
         logger.info("Sound engine loop end (batched)");
         this.handleLoopIteration();
@@ -278,7 +265,7 @@ export default class SoundEngine {
     this._metaBuffer.clear();
     setTimeout(() => {
       this._seekPending = false;
-    }, 100);
+    }, 20);
   }
 
   private stopCountIn() {

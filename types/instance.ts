@@ -51,7 +51,6 @@ export interface Transport {
   currentMeasureIndex: number;
   totalDuration: Tick;
   status: TransportStatus;
-  currentChords: Chord[];
 }
 
 export type TrackId = number;

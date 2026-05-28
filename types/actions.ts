@@ -37,7 +37,6 @@ export enum Action {
   SET_TRACKLIST_POSITION,
   SET_TRANSPORT_STATUS,
   SET_CURRENT_MEASURE,
-  SET_CURRENT_CHORDS,
 
   DISPLAY_CURRENT_MEASURE,
 
@@ -104,5 +103,4 @@ export type MidiAction = (
   | { type: Action.DISPLAY_CURRENT_MEASURE; display: boolean }
   | { type: Action.SHOW_GUITAR_DIAGRAMS; display: boolean }
   | { type: Action.SHOW_PIANO_DIAGRAMS; display: boolean }
-  | { type: Action.SET_CURRENT_CHORDS; chords: Chord[] }
 ) & { useHistory?: boolean };
