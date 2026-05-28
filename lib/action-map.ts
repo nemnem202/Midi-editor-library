@@ -13,6 +13,7 @@ export const NOTE_ACTIONS = [
   Action.SELECT_NOTES,
   Action.CHANGE_CURRENT_TRACK,
   Action.UNSELECT_ALL_NOTES,
+  Action.SET_TRANSPOSITION,
 ];
 
 export const MIDI_EVENT_CHANGE_ACTIONS = [

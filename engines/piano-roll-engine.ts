@@ -259,6 +259,10 @@ export abstract class PianoRollEngine {
       this.pianoKeyboardRenderer.draw();
     }
 
+    if (actions.has(Action.SET_TRANSPOSITION)) {
+      this.pianoKeyboardRenderer.draw();
+    }
+
     if (actions.has(Action.SET_TRANSPORT_STATUS)) {
       if (this.state.transport.status === "playing") {
         this.pianoKeyboardRenderer.draw();
@@ -486,9 +490,9 @@ export class PlayerEngine extends PianoRollEngine {
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
     if (!currentTrack) return;
 
-    const notesEventsCurrentTrack = notesEvents.filter(
-      (note) => note.channel === currentTrack.channel
-    );
+    const notesEventsCurrentTrack = notesEvents
+      .filter((note) => note.channel === currentTrack.channel)
+      .map((n) => ({ ...n, midiNote: n.midiNote + config.transposition }));
 
     if (notesEventsCurrentTrack.length > 0) {
       this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);

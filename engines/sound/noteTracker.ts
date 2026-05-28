@@ -1,3 +1,4 @@
+import { useMidiStore } from "@/midi-editor/stores/use-midi-store";
 import { WorkerSynthesizer } from "spessasynth_lib";
 
 export type NoteOnCallback = { midiNote: number; channel: number; velocity: number };
@@ -19,6 +20,7 @@ export class NoteTracker {
   constructor(private synth: WorkerSynthesizer) {
     synth.eventHandler.addEvent("noteOn", "Id note on", (note: NoteOnCallback) => {
       this._notesEvents.push({ ...note, type: NoteEventKind.On });
+
       this.activeMidiNotes.add(this.noteKey(note.midiNote, note.channel));
     });
 
@@ -26,6 +28,7 @@ export class NoteTracker {
       const key = this.noteKey(note.midiNote, note.channel);
       if (this.activeMidiNotes.has(key)) {
         this._notesEvents.push({ ...note, type: NoteEventKind.Off });
+
         this.activeMidiNotes.delete(key);
       }
     });
