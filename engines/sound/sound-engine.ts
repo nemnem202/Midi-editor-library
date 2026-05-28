@@ -69,7 +69,6 @@ export default class SoundEngine {
       if (text.includes("Bar_")) {
         if (this._seekPending) return;
         const currentMeasure = parseInt(text.split("_")[1], 10);
-        // SoundEngine.onMeasureChange?.(currentMeasure);
         useMidiStore
           .getState()
           .dispatch({ type: Action.SET_CURRENT_MEASURE, index: currentMeasure });
@@ -237,9 +236,9 @@ export default class SoundEngine {
 
     useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: closestMeasure });
 
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       this._seekPending = false;
-    });
+    }, 50);
   }
 
   private stopCountIn() {

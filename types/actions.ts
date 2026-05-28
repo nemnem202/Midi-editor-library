@@ -94,4 +94,4 @@ export type MidiAction = (
   | { type: Action.SET_REPEATS; repeats: number }
   | { type: Action.SET_COUNT_INT; countin: boolean }
   | { type: Action.SET_CURRENT_MEASURE; index: number }
-) & { skipHistory?: boolean };
+) & { useHistory?: boolean };
