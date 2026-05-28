@@ -268,23 +268,17 @@ export default class SoundEngine {
 
   private handleSeek(state: State) {
     this._seekPending = true;
-    this.unit.seek(state.transport.start, state.config.ppq);
 
-    let closestMeasure = 0;
-    let minDiff = Number.MAX_VALUE;
-    for (const [mIndex, mTick] of state.measuresStarts.entries()) {
-      const diff = Math.abs(mTick[0] - state.transport.start);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestMeasure = mIndex;
-      }
+    if (this._batchFrame !== null) {
+      cancelAnimationFrame(this._batchFrame);
+      this._batchFrame = null;
     }
-
-    useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: closestMeasure });
-
+    this._metaBuffer.clear();
+    this.unit.seek(state.transport.start, state.config.ppq);
+    this._metaBuffer.clear();
     setTimeout(() => {
       this._seekPending = false;
-    }, 20);
+    }, 100);
   }
 
   private stopCountIn() {
