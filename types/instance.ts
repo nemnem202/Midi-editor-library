@@ -3,6 +3,7 @@ import type { Action } from "./actions";
 import type { TrackJSON } from "@tonejs/midi";
 import { MidiInstrumentFamily, MidiInstrumentNumber } from "./instruments";
 import { Chord } from "@/types/music";
+import { MMAGrooveName, MMAGrooveTitle } from "@/types/mma";
 
 export type Bpm = number;
 export type Signature = [number, number];
@@ -35,6 +36,7 @@ export interface Config {
   loop: Loop | null;
   displayPianoDiagrams: boolean;
   displayGuitarDiagrams: boolean;
+  groove: MMAGrooveTitle;
 }
 
 export interface Loop {

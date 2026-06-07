@@ -110,6 +110,7 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
       transpositionPractice: 0,
       displayGuitarDiagrams: false,
       displayPianoDiagrams: true,
+      groove: "Bebop",
     },
     transport: {
       start: 0,
