@@ -130,8 +130,11 @@ export default class SoundEngine {
           this.unit.setPlaybackRate(state.config.bpm);
           break;
         case Action.RESET_STATE:
-          this.loadNewMidi(state);
+          logger.info("Action reset state detected");
+          this.reset();
           break;
+        case Action.INITIALIZE_STATE:
+          this.loadNewMidi(state);
         case Action.SET_TRANSPORT_START:
         case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
           this.handleSeek(state);
@@ -277,8 +280,8 @@ export default class SoundEngine {
   }
 
   public reset() {
+    logger.info("Sound engine reset");
     this.stopCountIn();
-
     this.unit.sequencer.pause();
     this.unit.sequencer.currentTime = 0;
     useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });

@@ -122,7 +122,7 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
       zoomY: 50,
     },
     currentTrackId,
-    queuedActions: new Set([Action.RESET_STATE]),
+    queuedActions: new Set([Action.INITIALIZE_STATE]),
     tracks,
     rawMidiBuffer: file.toArray(),
     measuresStarts: extractBarTickMap(file),
