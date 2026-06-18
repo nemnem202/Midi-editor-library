@@ -11,6 +11,8 @@ import type ViewportRenderer from "./viewport-renderer";
 import { Action } from "../types/actions";
 import { Event } from "../types/events";
 import { logger } from "../lib/logger";
+import { MidiInstrumentFamily } from "../types/instruments";
+import { trackIsDrums } from "../lib/utils";
 
 const MIN_NOTE_DISPLAYED_SIZE = 5;
 
@@ -73,7 +75,7 @@ export class PlayerNotesRenderer extends NotesRenderer {
     const { tracks, currentTrackId } = this.state;
     const { totalDuration } = this.state.transport;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
-    if (!currentTrack) return;
+    if (!currentTrack || trackIsDrums(currentTrack.family)) return;
     const { noteCount, startTicks, durations, pitches } = currentTrack.data;
     const { colors } = this.deps.engine;
     const { width } = this.deps.app.screen;

@@ -4,6 +4,7 @@ import { logger } from "../lib/logger";
 import type ViewportRenderer from "./viewport-renderer";
 import type { Event } from "../types/events";
 import type { MidiData, Track } from "../types/instance";
+import { trackIsDrums } from "../lib/utils";
 
 export class GrayedNoteSprite extends Sprite {
   constructor(
@@ -33,8 +34,7 @@ export default abstract class GrayedNotesRenderer extends Renderer<GrayedNotesRe
 
   protected getMergedTracksData(): MidiData {
     const { tracks, currentTrackId } = this.state;
-
-    const otherTracks = tracks.filter((t) => t.id !== currentTrackId);
+    const otherTracks = tracks.filter((t) => t.id !== currentTrackId && !trackIsDrums(t.family));
     const totalNotes = otherTracks.reduce((sum: number, t: Track) => sum + t.data.noteCount, 0);
 
     const mergedData: MidiData = {
