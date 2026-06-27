@@ -188,6 +188,7 @@ export default class SoundEngine {
     this.stopCountIn();
     this.unit.transposeAllChannels(state);
     this.unit.setPlaybackRate(state.config.bpm);
+    this.changeTracksVolume(state);
     if (state.config.countIn) {
       this.countInController = new AbortController();
       const { signal } = this.countInController;
