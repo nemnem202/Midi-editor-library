@@ -9,7 +9,6 @@ import {
   MidiInstrumentFamily,
   MidiInstrumentNumber,
 } from "../types/instruments";
-import { Chord } from "@/types/music";
 import { MMAGrooveTitle } from "@/lib/generated/prisma/enums";
 
 export async function getMidiFile(url: string): Promise<Midi> {
@@ -41,6 +40,19 @@ export async function getMidiFileFromBuffer(data: any): Promise<Midi> {
   }
 }
 
+export function addLoopsToMidi(midi: Midi, state: State) {
+  const durationTicks = midi.durationTicks.valueOf();
+  for (let loopIdx = 0; loopIdx <= state.config.repeats; loopIdx++) {
+    for (const track of midi.tracks) {
+      const notesNumber = track.notes.length.valueOf();
+      for (let noteIdx = 0; noteIdx <= notesNumber; noteIdx++) {
+        const refferedNote = track.notes[noteIdx];
+        track.addNote({ ...refferedNote, ticks: refferedNote.ticks + durationTicks * loopIdx });
+      }
+    }
+  }
+}
+
 // Hiérarchie des familles : index plus bas = priorité plus haute
 export const FAMILY_HIERARCHY: MidiInstrumentFamily[] = [
   MidiInstrumentFamily.Piano,
@@ -66,12 +78,6 @@ export function getFamilyPriority(family: MidiInstrumentFamily): number {
   return idx === -1 ? FAMILY_HIERARCHY.length : idx;
 }
 
-/**
- * Détermine le currentTrackId selon la hiérarchie :
- * 1. On groupe les tracks par famille
- * 2. On prend la famille la plus haute dans la hiérarchie
- * 3. En cas d'égalité de famille, on prend le track avec le plus de notes
- */
 export function resolveCurrentTrackId(tracks: Track[]): MidiInstrumentNumber {
   if (tracks.length === 0) return 0 as MidiInstrumentNumber;
 

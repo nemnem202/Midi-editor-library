@@ -47,7 +47,6 @@ export default class SoundEngine {
     synth.connect(this.context.destination);
 
     const sequencer = new Sequencer(synth);
-    sequencer.loopCount = Infinity;
 
     this.instance = new SoundEngine();
     this.instance.unit = new SequencerUnit(synth, sequencer);
@@ -134,11 +133,13 @@ export default class SoundEngine {
           break;
         case Action.INITIALIZE_STATE:
           this.loadNewMidi(state);
+          break;
         case Action.SET_TRANSPORT_START:
         case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
           this.handleSeek(state);
           break;
         case Action.SET_LOOP:
+          this.updateLoop(state);
           break;
         case Action.CHANGE_TRACK_VOLUME:
           this.changeTracksVolume(state);
@@ -161,8 +162,8 @@ export default class SoundEngine {
     this.unit.sequencer.loadNewSongList([
       { binary: cleanBuffer as ArrayBuffer, fileName: "exercise.mid" },
     ]);
-    this.unit.sequencer.loopCount = Infinity;
 
+    this.updateLoop(state);
     this.unit.captureBaseTempo(cleanBuffer as any);
     this.unit.setPlaybackRate(config.bpm);
 
@@ -185,6 +186,7 @@ export default class SoundEngine {
 
   private async play(state: State) {
     this.stopCountIn();
+    this.updateLoop(state);
     this.unit.transposeAllChannels(state);
     this.unit.setPlaybackRate(state.config.bpm);
     this.changeTracksVolume(state);
@@ -231,8 +233,8 @@ export default class SoundEngine {
 
     if (!next) {
       logger.info("All repeats done, stopping.");
-      this.unit.sequencer.pause();
-      this.unit.sequencer.currentTime = 0;
+      // this.unit.sequencer.pause();
+      // this.unit.sequencer.currentTime = 0;
 
       useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });
 
@@ -247,12 +249,12 @@ export default class SoundEngine {
       return;
     }
 
-    logger.info("Next iteration, repeatIndex:", next.repeatIndex);
+    // logger.info("Next iteration, repeatIndex:", next.repeatIndex);
 
-    this.unit.setPlaybackRate(next.targetBpm);
-    this.unit.transposeAllChannels(state, next.repeatIndex);
-    this.unit.seek(next.startTick, state.config.ppq);
-    this.changeTracksVolume(state);
+    // this.unit.setPlaybackRate(next.targetBpm);
+    // this.unit.transposeAllChannels(state, next.repeatIndex);
+    // this.unit.seek(next.startTick, state.config.ppq);
+    // this.changeTracksVolume(state);
     useMidiStore.getState().dispatch({
       type: Action.SET_LOOP,
       loop: { ...state.config.loop, currentRepeatIndex: next.repeatIndex },
@@ -272,6 +274,11 @@ export default class SoundEngine {
     setTimeout(() => {
       this._seekPending = false;
     }, 20);
+  }
+
+  private updateLoop(state: State) {
+    logger.info("Sound engine update loop");
+    this.unit.sequencer.loopCount = state.config.repeats;
   }
 
   private stopCountIn() {
