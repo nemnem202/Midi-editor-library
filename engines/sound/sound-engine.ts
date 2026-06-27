@@ -253,7 +253,7 @@ export default class SoundEngine {
     this.unit.setPlaybackRate(next.targetBpm);
     this.unit.transposeAllChannels(state, next.repeatIndex);
     this.unit.seek(next.startTick, state.config.ppq);
-
+    this.changeTracksVolume(state);
     useMidiStore.getState().dispatch({
       type: Action.SET_LOOP,
       loop: { ...state.config.loop, currentRepeatIndex: next.repeatIndex },
