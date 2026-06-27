@@ -130,7 +130,6 @@ export default class SoundEngine {
           this.unit.setPlaybackRate(state.config.bpm);
           break;
         case Action.RESET_STATE:
-          logger.info("Action reset state detected");
           this.reset();
           break;
         case Action.INITIALIZE_STATE:
