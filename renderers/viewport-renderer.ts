@@ -8,8 +8,8 @@ import { Event } from "../types/events";
 import type GridRenderer from "./grid-renderer";
 import type { State } from "../types/instance";
 import { logger } from "@/lib/logger";
-
-const MINSCALEY = 0.5;
+import { MidiInstrumentFamily } from "../types/instruments";
+import { trackIsDrums } from "../lib/utils";
 
 export interface ViewportRendererDeps extends RendererDeps {
   pianoKeyboardRenderer: PianoKeyboardRenderer;
@@ -287,6 +287,7 @@ export class PlayerViewportRenderer extends ViewportRenderer {
     let hasNotes = false;
 
     for (const track of tracks) {
+      if (trackIsDrums(track.family)) continue;
       for (const pitch of track.data.pitches) {
         if (pitch < minPitch) minPitch = pitch;
         if (pitch > maxPitch) maxPitch = pitch;

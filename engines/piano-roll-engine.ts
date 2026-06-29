@@ -228,7 +228,11 @@ export abstract class PianoRollEngine {
 
   protected processActions() {
     const actions = this.actionsDirtyFlags;
-    if (this.actionsDirtyFlags.has(Action.RENDER_ALL)) {
+    if (
+      this.actionsDirtyFlags.has(Action.RENDER_ALL) ||
+      this.actionsDirtyFlags.has(Action.RESET_STATE)
+    ) {
+      logger.info("Reset state !");
       this.drawAll();
       return;
     }

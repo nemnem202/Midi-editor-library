@@ -28,7 +28,7 @@ export default function PianoRoll() {
 function Content() {
   const rootDiv = useRef<HTMLDivElement>(null);
   const engineRef = useRef<PianoRollEngine | null>(null);
-  const { size } = useScreen();
+  const { size, orientation } = useScreen();
   const screen = useScreen();
   const { dispatch, state } = useMidiStore();
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
@@ -70,7 +70,7 @@ function Content() {
   }, [size]);
 
   return (
-    <div className="flex flex-col size-full gap-2">
+    <div className="flex flex-col size-full gap-2 justify-end">
       {screen.size === "sm" && screen.orientation === "vertical" && (
         <div className="w-full flex justify-between">
           <div className="flex gap-2">
@@ -100,7 +100,7 @@ function Content() {
       )}
       <div
         ref={rootDiv}
-        className="flex-1 w-full h-full min-h-0 bg-black rounded-lg focus:border-none focus-visible:ring-offset-0"
+        className={`h-full flex flex-col justify-end bg-black rounded-lg focus:border-none focus-visible:ring-offset-0 `}
         onContextMenu={(e) => e.preventDefault()}
         role="application"
         tabIndex={-1}

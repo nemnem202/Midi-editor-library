@@ -1,6 +1,7 @@
 import type { TimeSignatureSchema } from "@/types/entities";
 import type { State } from "../types/instance";
 import { logger } from "./logger";
+import { MidiInstrumentFamily } from "../types/instruments";
 
 export function areUint8ArraysEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -101,4 +102,11 @@ export function colorFromValue(value: number, whitenPercent: number = 0): string
 
 export function isBlackKey(pitch: number): boolean {
   return [1, 3, 6, 8, 10].includes(pitch % 12);
+}
+
+export function trackIsDrums(trackFamily?: MidiInstrumentFamily): boolean {
+  return (
+    trackFamily === MidiInstrumentFamily.Percussive ||
+    trackFamily === MidiInstrumentFamily.ChromaticPercussion
+  );
 }

@@ -5,6 +5,7 @@ export enum Action {
   RENDER_ALL,
 
   RESET_STATE,
+  INITIALIZE_STATE,
 
   ADD_NOTE,
   REMOVE_NOTE,

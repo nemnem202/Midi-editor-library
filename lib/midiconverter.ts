@@ -9,7 +9,7 @@ import {
   MidiInstrumentFamily,
   MidiInstrumentNumber,
 } from "../types/instruments";
-import { Chord } from "@/types/music";
+import { MMAGrooveTitle } from "@/lib/generated/prisma/enums";
 
 export async function getMidiFile(url: string): Promise<Midi> {
   const { Midi } = await import("@tonejs/midi");
@@ -40,6 +40,19 @@ export async function getMidiFileFromBuffer(data: any): Promise<Midi> {
   }
 }
 
+export function addLoopsToMidi(midi: Midi, state: State) {
+  const durationTicks = midi.durationTicks.valueOf();
+  for (let loopIdx = 0; loopIdx <= state.config.repeats; loopIdx++) {
+    for (const track of midi.tracks) {
+      const notesNumber = track.notes.length.valueOf();
+      for (let noteIdx = 0; noteIdx <= notesNumber; noteIdx++) {
+        const refferedNote = track.notes[noteIdx];
+        track.addNote({ ...refferedNote, ticks: refferedNote.ticks + durationTicks * loopIdx });
+      }
+    }
+  }
+}
+
 // Hiérarchie des familles : index plus bas = priorité plus haute
 export const FAMILY_HIERARCHY: MidiInstrumentFamily[] = [
   MidiInstrumentFamily.Piano,
@@ -65,12 +78,6 @@ export function getFamilyPriority(family: MidiInstrumentFamily): number {
   return idx === -1 ? FAMILY_HIERARCHY.length : idx;
 }
 
-/**
- * Détermine le currentTrackId selon la hiérarchie :
- * 1. On groupe les tracks par famille
- * 2. On prend la famille la plus haute dans la hiérarchie
- * 3. En cas d'égalité de famille, on prend le track avec le plus de notes
- */
 export function resolveCurrentTrackId(tracks: Track[]): MidiInstrumentNumber {
   if (tracks.length === 0) return 0 as MidiInstrumentNumber;
 
@@ -84,7 +91,12 @@ export function resolveCurrentTrackId(tracks: Track[]): MidiInstrumentNumber {
   }).id;
 }
 
-export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): State {
+export function convertMidiFileToState(
+  file: Midi,
+  exercise: ExerciseSchema,
+  previousState?: State,
+  groove?: MMAGrooveTitle
+): State {
   file.header.setTempo(exercise.defaultConfig.bpm);
 
   const tracks = getTracks(file);
@@ -94,35 +106,38 @@ export function convertMidiFileToState(file: Midi, exercise: ExerciseSchema): St
 
   return {
     config: {
-      bpm: exercise.defaultConfig.bpm,
+      bpm: previousState?.config.bpm ?? exercise.defaultConfig.bpm,
       ppq: file.header.ppq,
       signature: [
         exercise.defaultConfig.timeSignatureTop,
         exercise.defaultConfig.timeSignatureBottom,
       ],
       subdivision: [1, 128],
-      loop: extractLoop(file),
-      bpmPractice: 0,
-      countIn: true,
-      currentMeasureOverline: true,
-      repeats: 0,
-      transposition: 0,
-      transpositionPractice: 0,
-      displayGuitarDiagrams: false,
-      displayPianoDiagrams: true,
+      loop: previousState?.config.loop ?? extractLoop(file),
+      bpmPractice: previousState?.config.bpmPractice ?? 0,
+      countIn: previousState?.config ? previousState?.config.countIn : true,
+      currentMeasureOverline: previousState?.config.currentMeasureOverline
+        ? previousState?.config.currentMeasureOverline
+        : true,
+      repeats: previousState?.config.repeats ?? 0,
+      transposition: previousState?.config.transposition ?? 0,
+      transpositionPractice: previousState?.config.transpositionPractice ?? 0,
+      displayGuitarDiagrams: previousState?.config.displayGuitarDiagrams ?? false,
+      displayPianoDiagrams: previousState ? previousState.config.displayPianoDiagrams : true,
+      groove: groove ?? exercise.defaultConfig.groove,
     },
-    transport: {
+    transport: previousState?.transport ?? {
       start: 0,
       totalDuration: file.durationTicks,
       status: "paused",
       playbackPosition: 0,
       currentMeasureIndex: 0,
     },
-    display: {
+    display: previousState?.display ?? {
       zoomY: 50,
     },
     currentTrackId,
-    queuedActions: new Set([Action.RESET_STATE]),
+    queuedActions: new Set([Action.INITIALIZE_STATE]),
     tracks,
     rawMidiBuffer: file.toArray(),
     measuresStarts: extractBarTickMap(file),

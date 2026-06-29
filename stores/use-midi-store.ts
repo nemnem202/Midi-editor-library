@@ -4,6 +4,7 @@ import { midiReducer } from "../lib/immer-reducer";
 import type { State } from "../types/instance";
 import { Action, type MidiAction } from "../types/actions";
 import { logger } from "@/lib/logger";
+import EMPTY_STATE from "@/config/empty_state";
 
 enableMapSet();
 
@@ -36,13 +37,13 @@ function deepCloneState(state: State): State {
 }
 
 export const useMidiStore = create<MidiStore>((set, get) => ({
-  state: null,
+  state: EMPTY_STATE,
   undoStack: [],
   redoStack: [],
 
   reset: () => {
     set({
-      state: null,
+      state: EMPTY_STATE,
     });
   },
 
