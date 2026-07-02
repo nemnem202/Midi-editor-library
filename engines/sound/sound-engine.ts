@@ -8,6 +8,7 @@ import { SequencerUnit } from "./sequencerUnit";
 import { PracticeLogic } from "./practiceLogic";
 import { NoteEvent, NoteTracker } from "./noteTracker";
 import { logger } from "@/lib/logger";
+import { MidiInstrumentNumber } from "@/midi-editor/types/instruments";
 
 export default class SoundEngine {
   private static instance: SoundEngine | null = null;
@@ -22,6 +23,8 @@ export default class SoundEngine {
 
   private _metaBuffer = new Map<string, string>();
   private _batchFrame: number | null = null;
+
+  private userInputChannel = 0;
 
   private constructor() {
     this.setupStoreSubscription();
@@ -166,6 +169,8 @@ export default class SoundEngine {
     if (transport.start > 0) {
       this.unit.seek(transport.start, config.ppq);
     }
+
+    this.userInputChannel = state.config.userInputChannel;
   }
 
   private async syncTransport(state: State) {
@@ -212,12 +217,6 @@ export default class SoundEngine {
   private pause(state: State) {
     this.stopCountIn();
     this.unit.sequencer.pause();
-
-    // state.config.loop &&
-    //   useMidiStore.getState().dispatch({
-    //     type: Action.SET_LOOP,
-    //     loop: { ...state.config.loop, currentRepeatIndex: 0 },
-    //   });
     this.handleSeek(state);
   }
 
@@ -310,5 +309,20 @@ export default class SoundEngine {
   }
   public clearNotesEvents() {
     this.noteTracker?.clearNotesEvents();
+  }
+
+  public static noteOn(midi: number, velocity: number) {
+    if (!this.instance) return;
+    this.instance.unit.synth.noteOn(this.instance.userInputChannel, midi, velocity);
+  }
+
+  public static noteOff(midi: number) {
+    if (!this.instance) return;
+    this.instance.unit.synth.noteOff(this.instance.userInputChannel, midi);
+  }
+
+  public static changeUserInstrument(instrument: MidiInstrumentNumber) {
+    if (!this.instance) return;
+    this.instance.unit.synth.programChange(this.instance.userInputChannel, instrument);
   }
 }

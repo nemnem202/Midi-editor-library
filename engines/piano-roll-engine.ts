@@ -487,6 +487,7 @@ export class PlayerEngine extends PianoRollEngine {
 
     const { currentTime, currentTempo, notesEvents } = this.soundEngine;
     const { config, currentTrackId, tracks } = this.state;
+
     const currentTick = convertSecondsToTick(currentTime, currentTempo, config.ppq);
 
     this.playheadRenderer.updatePlayhead(currentTick);
@@ -498,8 +499,11 @@ export class PlayerEngine extends PianoRollEngine {
       .filter((note) => note.channel === currentTrack.channel)
       .map((n) => ({ ...n, midiNote: n.midiNote + config.transposition }));
 
-    if (notesEventsCurrentTrack.length > 0) {
+    const userNotesEvents = notesEvents.filter((note) => note.channel === config.userInputChannel);
+
+    if (notesEventsCurrentTrack.length + userNotesEvents.length > 0) {
       this.pianoKeyboardRenderer.colorNotes(notesEventsCurrentTrack);
+      this.pianoKeyboardRenderer.colorNotes(userNotesEvents, true);
       this.soundEngine.clearNotesEvents();
     } else {
       this.pianoKeyboardRenderer.colorNotes([]);
