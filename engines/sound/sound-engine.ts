@@ -8,6 +8,7 @@ import { SequencerUnit } from "./sequencerUnit";
 import { PracticeLogic } from "./practiceLogic";
 import { NoteEvent, NoteTracker } from "./noteTracker";
 import { logger } from "@/lib/logger";
+import { MidiInstrumentNumber } from "@/midi-editor/types/instruments";
 
 export default class SoundEngine {
   private static instance: SoundEngine | null = null;
@@ -318,5 +319,10 @@ export default class SoundEngine {
   public static noteOff(midi: number) {
     if (!this.instance) return;
     this.instance.unit.synth.noteOff(this.instance.userInputChannel, midi);
+  }
+
+  public static changeUserInstrument(instrument: MidiInstrumentNumber) {
+    if (!this.instance) return;
+    this.instance.unit.synth.programChange(this.instance.userInputChannel, instrument);
   }
 }
