@@ -284,9 +284,10 @@ export default class SoundEngine {
     useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });
   }
 
-  private changeTracksVolume(state: State) {
+  private async changeTracksVolume(state: State) {
+    const snapshot = await this.unit.synth.getSnapshot();
     for (const track of state.tracks) {
-      this.unit.synth.muteChannel(track.channel, track.muted);
+      snapshot.midiChannels[track.channel].systemParameters.isMuted = track.muted;
       this.unit.synth.controllerChange(track.channel, 7, track.volume);
     }
   }

@@ -30,7 +30,7 @@ export class SequencerUnit {
     this.sequencer.playbackRate = bpm / this._baseTempo;
   }
 
-  transposeAllChannels(state: State, forceCurrentRepeat?: number) {
+  async transposeAllChannels(state: State, forceCurrentRepeat?: number) {
     let semitones = state.config.transposition;
 
     if (state.config.loop) {
@@ -39,9 +39,13 @@ export class SequencerUnit {
         : state.config.loop.currentRepeatIndex;
       semitones += state.config.transpositionPractice * currentRepeat;
     }
-    for (const track of state.tracks) {
-      this.synth.transposeChannel(track.channel, semitones, false);
-    }
+    // for (const track of state.tracks) {
+    //   // this.synth.transposeChannel(track.channel, semitones, false);
+    //   this.synth.controllerChange(track.channel, )
+    // }
+
+    const snapshot = await this.synth.getSnapshot();
+    snapshot.systemParameters.fineTune = semitones;
   }
 
   seek(tick: number, ppq: number) {
