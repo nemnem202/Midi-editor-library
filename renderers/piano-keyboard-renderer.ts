@@ -22,7 +22,7 @@ export default abstract class PianoKeyboardRenderer extends Renderer<PianoKeyboa
 
   protected abstract drawKeys(keyHeight: number): void;
 
-  public abstract colorNotes(notesEvents: NoteEvent[]): void;
+  public abstract colorNotes(notesEvents: NoteEvent[], fromUser?: boolean): void;
 }
 
 export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
@@ -71,7 +71,7 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
     }
   }
 
-  private redrawKey(pitch: number, noteOn: boolean): void {
+  private redrawKey(pitch: number, noteOn: boolean, fromUser?: boolean): void {
     const { height } = this.deps.app.screen;
     const { pianoKeyboardSize, colors } = this.deps.engine;
     const keywidth = this.deps.app.screen.width / 75;
@@ -86,21 +86,21 @@ export class HorizontalPianoKeyboardRenderer extends PianoKeyboardRenderer {
           keywidth / 2,
           (pianoKeyboardSize * 2) / 3
         )
-        .fill(noteOn ? colors.primary : colors.background);
+        .fill(fromUser && noteOn ? colors.secondary : noteOn ? colors.primary : colors.background);
 
       if (noteOn) graphic.stroke({ color: colors.background, pixelLine: true });
     } else {
       const whitesBefore = this.countWhiteKeysBefore(pitch);
       graphic
         .rect(whitesBefore * keywidth, height - pianoKeyboardSize, keywidth, height)
-        .fill(noteOn ? colors.primary : colors.foreground)
+        .fill(fromUser && noteOn ? colors.secondary : noteOn ? colors.primary : colors.foreground)
         .stroke({ color: colors.background, pixelLine: true });
     }
   }
 
-  colorNotes(notesEvents: NoteEvent[]): void {
+  colorNotes(notesEvents: NoteEvent[], fromUser?: boolean): void {
     for (const { midiNote, type, channel } of notesEvents)
-      if (channel !== 9) this.redrawKey(midiNote, type === NoteEventKind.On);
+      if (channel !== 9) this.redrawKey(midiNote, type === NoteEventKind.On, fromUser);
   }
 
   private countWhiteKeysBefore(pitch: number): number {
