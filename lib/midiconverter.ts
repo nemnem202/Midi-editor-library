@@ -101,6 +101,7 @@ export function convertMidiFileToState(
 
   const tracks = getTracks(file);
   remapMidiFileChannels(file, tracks);
+  const userChannel = getUserChannel(tracks);
 
   const currentTrackId = resolveCurrentTrackId(tracks);
 
@@ -125,6 +126,7 @@ export function convertMidiFileToState(
       displayGuitarDiagrams: previousState?.config.displayGuitarDiagrams ?? false,
       displayPianoDiagrams: previousState ? previousState.config.displayPianoDiagrams : true,
       groove: groove ?? exercise.defaultConfig.groove,
+      userInputChannel: userChannel,
     },
     transport: previousState?.transport ?? {
       start: 0,
@@ -302,4 +304,13 @@ function remapMidiFileChannels(file: Midi, tracks: Track[]): void {
     // Idem pour les autres events (controlChange, pitchBend, etc.)
     midiTrack.channel = targetChannel;
   }
+}
+
+function getUserChannel(tracks: Track[]) {
+  let channel = 0;
+  let allChannels = tracks.map((t) => t.channel);
+  while (allChannels.includes(channel)) {
+    channel++;
+  }
+  return channel;
 }

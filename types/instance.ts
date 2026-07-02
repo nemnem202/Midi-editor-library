@@ -38,6 +38,7 @@ export interface Config {
   displayPianoDiagrams: boolean;
   displayGuitarDiagrams: boolean;
   groove: MMAGrooveTitle;
+  userInputChannel: number;
 }
 
 export interface Loop {
