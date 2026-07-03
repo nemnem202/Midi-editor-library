@@ -262,6 +262,9 @@ export abstract class PianoRollEngine {
       this.playheadRenderer.drawTracklist();
       this.pianoKeyboardRenderer.draw();
     }
+    if (actions.has(Action.SET_REPEATS)) {
+      this.notesRenderer.draw();
+    }
 
     if (actions.has(Action.SET_TRANSPOSITION)) {
       this.pianoKeyboardRenderer.draw();

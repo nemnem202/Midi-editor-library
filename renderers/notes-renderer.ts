@@ -73,51 +73,72 @@ export class PlayerNotesRenderer extends NotesRenderer {
 
     const { tracks, currentTrackId } = this.state;
     const { totalDuration } = this.state.transport;
+    const { repeats } = this.state.config;
+
+    const shouldRepeat = repeats > 0;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
 
     if (!currentTrack || trackIsDrums(currentTrack.family)) return;
 
     const { noteCount, startTicks, durations, pitches } = currentTrack.data;
-    const { colors } = this.deps.engine;
     const { width } = this.deps.app.screen;
 
     const keyWidth = width / 75;
 
     for (let i = 0; i < noteCount; i++) {
-      let sprite = this.pool[i];
-      const isBlack = isBlackKey(pitches[i]);
-      if (!sprite) {
-        sprite = new NoteSprite(i, {
-          texture: Texture.WHITE,
-          eventMode: "dynamic",
-          zIndex: isBlack ? 1 : 0,
-        });
-        this.pool[i] = sprite;
-        this.container.addChild(sprite);
-      }
-      sprite.visible = true;
-
-      if (isBlack) {
-        this.setBoundsForBlackKey(sprite, pitches[i], keyWidth);
-      } else {
-        this.setBoundsForWhiteKey(sprite, pitches[i], keyWidth);
-      }
-
-      sprite.y = totalDuration - startTicks[i] - durations[i];
-      sprite.height = durations[i];
-
-      if (durations[i] < MIN_NOTE_DISPLAYED_SIZE) {
-        sprite.height = MIN_NOTE_DISPLAYED_SIZE;
-        sprite.y -= MIN_NOTE_DISPLAYED_SIZE - durations[i];
-      }
-      sprite.tint = isBlack ? colors.primary_muted : colors.primary;
+      this.drawNote(
+        i,
+        pitches[i],
+        keyWidth,
+        totalDuration - startTicks[i] - durations[i],
+        durations[i]
+      );
+      shouldRepeat &&
+        this.drawNote(
+          i + noteCount,
+          pitches[i],
+          keyWidth,
+          -startTicks[i] - durations[i],
+          durations[i]
+        );
     }
-
-    for (let i = noteCount; i < this.pool.length; i++) {
+    const spritesIndexToHide = shouldRepeat ? noteCount * 2 : noteCount;
+    for (let i = spritesIndexToHide; i < this.pool.length; i++) {
       this.pool[i].visible = false;
     }
 
     logger.draw("Notes", Date.now() - start);
+  }
+
+  private drawNote(i: number, pitch: number, keyWidth: number, y: number, duration: number) {
+    const { colors } = this.deps.engine;
+    let sprite = this.pool[i];
+    const isBlack = isBlackKey(pitch);
+    if (!sprite) {
+      sprite = new NoteSprite(i, {
+        texture: Texture.WHITE,
+        eventMode: "dynamic",
+        zIndex: isBlack ? 1 : 0,
+      });
+      this.pool[i] = sprite;
+      this.container.addChild(sprite);
+    }
+    sprite.visible = true;
+
+    if (isBlack) {
+      this.setBoundsForBlackKey(sprite, pitch, keyWidth);
+    } else {
+      this.setBoundsForWhiteKey(sprite, pitch, keyWidth);
+    }
+
+    sprite.y = y;
+    sprite.height = duration;
+
+    if (duration < MIN_NOTE_DISPLAYED_SIZE) {
+      sprite.height = MIN_NOTE_DISPLAYED_SIZE;
+      sprite.y -= MIN_NOTE_DISPLAYED_SIZE - duration;
+    }
+    sprite.tint = isBlack ? colors.primary_muted : colors.primary;
   }
 
   private setBoundsForWhiteKey(sprite: Sprite, pitch: number, keyWidth: number): void {
