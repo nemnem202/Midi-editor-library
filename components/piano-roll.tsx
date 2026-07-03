@@ -100,7 +100,7 @@ function Content() {
       )}
       <div
         ref={rootDiv}
-        className={`h-full flex flex-col justify-end bg-black rounded-lg focus:border-none focus-visible:ring-offset-0 `}
+        className={`h-full flex flex-col justify-end rounded-lg focus:border-none focus-visible:ring-offset-0 `}
         onContextMenu={(e) => e.preventDefault()}
         role="application"
         tabIndex={-1}

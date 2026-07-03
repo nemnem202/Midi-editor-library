@@ -129,10 +129,10 @@ export abstract class PianoRollEngine {
     try {
       this._isDestroyed = false;
       await this.app.init({
-        backgroundAlpha: 1,
+        backgroundAlpha: 0,
         resizeTo: this.root_div,
         antialias: false,
-        backgroundColor: "#000000",
+        // backgroundColor: "#000000",
         preference: "webgl",
       });
 
