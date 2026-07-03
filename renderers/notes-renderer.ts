@@ -131,8 +131,8 @@ export class PlayerNotesRenderer extends NotesRenderer {
       this.setBoundsForWhiteKey(sprite, pitch, keyWidth);
     }
 
-    sprite.y = y;
-    sprite.height = duration;
+    sprite.y = y - 1; // i add +1 and -1 to avoid some visual artefacts
+    sprite.height = duration + 1;
 
     if (duration < MIN_NOTE_DISPLAYED_SIZE) {
       sprite.height = MIN_NOTE_DISPLAYED_SIZE;
