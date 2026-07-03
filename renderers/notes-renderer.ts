@@ -13,7 +13,7 @@ import { Event } from "../types/events";
 import { logger } from "../lib/logger";
 import { isBlackKey, trackIsDrums } from "../lib/utils";
 
-const MIN_NOTE_DISPLAYED_SIZE = 5;
+export const MIN_NOTE_DISPLAYED_SIZE = 5;
 
 export class NoteSprite extends Sprite {
   constructor(
@@ -118,12 +118,12 @@ export class PlayerNotesRenderer extends NotesRenderer {
       sprite = new NoteSprite(i, {
         texture: Texture.WHITE,
         eventMode: "dynamic",
-        zIndex: isBlack ? 1 : 0,
       });
       this.pool[i] = sprite;
       this.container.addChild(sprite);
     }
     sprite.visible = true;
+    sprite.zIndex = isBlack ? 2 : 1;
 
     if (isBlack) {
       this.setBoundsForBlackKey(sprite, pitch, keyWidth);
