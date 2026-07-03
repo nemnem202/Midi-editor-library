@@ -184,7 +184,6 @@ export class PlayerViewportRenderer extends ViewportRenderer {
   }
 
   public draw(): void {
-    let needsGridUpdate = false;
     const { pianoKeyboardSize } = this.deps.engine;
 
     const currentZoomY = this.deps.engine.state.display.zoomY;
@@ -199,7 +198,6 @@ export class PlayerViewportRenderer extends ViewportRenderer {
       this.container.scale.y = newScaleY;
       this.container.y = pivotWorldY - pivotLocalY * newScaleY;
       this.lastZoomY = currentZoomY;
-      needsGridUpdate = true;
     }
 
     if (this.pendingZoomDeltaY !== null) {
@@ -222,7 +220,6 @@ export class PlayerViewportRenderer extends ViewportRenderer {
       } else {
         const minScaleY = availableHeight / transport.totalDuration;
         this.container.scale.y = Math.max(this.container.scale.y * factor, minScaleY);
-        needsGridUpdate = true;
       }
 
       const newWorldPointerPosition = this.container.toGlobal(localPointerPos);
@@ -237,7 +234,6 @@ export class PlayerViewportRenderer extends ViewportRenderer {
       this.container.y += this.pendingDy;
       this.pendingDx = 0;
       this.pendingDy = 0;
-      needsGridUpdate = true;
     }
 
     if (this.pendingCenterTick !== null) {
@@ -248,14 +244,9 @@ export class PlayerViewportRenderer extends ViewportRenderer {
         this.pendingCenterTick * this.container.scale.y;
       this.container.y = targetY;
       this.pendingCenterTick = null;
-      needsGridUpdate = true;
     }
 
     this.constrain();
-
-    if (needsGridUpdate) {
-      this.deps.gridRenderer.draw();
-    }
 
     const keyboard = this.deps.pianoKeyboardRenderer.container;
     const background = this.deps.backgroundRenderer.container;

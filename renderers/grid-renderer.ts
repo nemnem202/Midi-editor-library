@@ -23,7 +23,24 @@ export default abstract class GridRenderer extends Renderer<GridRendererDeps> {
 }
 
 export class PlayerGridRenderer extends GridRenderer {
-  public draw(): void {}
+  public draw(): void {
+    const start = Date.now();
+    const { width } = this.deps.app.screen;
+    const measuresStarts = this.state.measuresStarts;
+    this.graphic.clear();
+
+    for (const [index, starts] of measuresStarts) {
+      for (let i = 0; i < starts.length; i++) {
+        let y = starts[i];
+        this.graphic.moveTo(0, y);
+        this.graphic.lineTo(width, y);
+      }
+    }
+
+    this.graphic.stroke({ color: "#292929", pixelLine: true });
+
+    logger.draw("Grid", Date.now() - start);
+  }
 }
 
 export class EditorGridRenderer extends GridRenderer {
