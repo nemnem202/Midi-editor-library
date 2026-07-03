@@ -45,6 +45,7 @@ function Content() {
       isMobile: size === "sm",
       colors: {
         primary: getVar("--primary"),
+        primary_muted: getVar("--primary-muted"),
         secondary: getVar("--secondary"),
         foreground: getVar("--foreground"),
         muted: getVar("--border"),

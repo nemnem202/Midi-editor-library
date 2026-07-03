@@ -14,6 +14,7 @@ export type PianoRollConfig = {
   isMobile: boolean;
   colors: {
     primary: string;
+    primary_muted: string;
     secondary: string;
     background: string;
     popover: string;

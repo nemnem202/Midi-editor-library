@@ -11,8 +11,7 @@ import type ViewportRenderer from "./viewport-renderer";
 import { Action } from "../types/actions";
 import { Event } from "../types/events";
 import { logger } from "../lib/logger";
-import { MidiInstrumentFamily } from "../types/instruments";
-import { trackIsDrums } from "../lib/utils";
+import { isBlackKey, trackIsDrums } from "../lib/utils";
 
 const MIN_NOTE_DISPLAYED_SIZE = 5;
 
@@ -75,34 +74,43 @@ export class PlayerNotesRenderer extends NotesRenderer {
     const { tracks, currentTrackId } = this.state;
     const { totalDuration } = this.state.transport;
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
+
     if (!currentTrack || trackIsDrums(currentTrack.family)) return;
+
     const { noteCount, startTicks, durations, pitches } = currentTrack.data;
     const { colors } = this.deps.engine;
     const { width } = this.deps.app.screen;
-    const noteWidth = width / 128.5;
+
+    const keyWidth = width / 75;
 
     for (let i = 0; i < noteCount; i++) {
       let sprite = this.pool[i];
-
+      const isBlack = isBlackKey(pitches[i]);
       if (!sprite) {
         sprite = new NoteSprite(i, {
           texture: Texture.WHITE,
           eventMode: "dynamic",
+          zIndex: isBlack ? 1 : 0,
         });
         this.pool[i] = sprite;
         this.container.addChild(sprite);
       }
       sprite.visible = true;
+
+      if (isBlack) {
+        this.setBoundsForBlackKey(sprite, pitches[i], keyWidth);
+      } else {
+        this.setBoundsForWhiteKey(sprite, pitches[i], keyWidth);
+      }
+
       sprite.y = totalDuration - startTicks[i] - durations[i];
-      sprite.x = noteWidth * pitches[i] + 1;
-      sprite.width = noteWidth - 2;
       sprite.height = durations[i];
 
       if (durations[i] < MIN_NOTE_DISPLAYED_SIZE) {
         sprite.height = MIN_NOTE_DISPLAYED_SIZE;
         sprite.y -= MIN_NOTE_DISPLAYED_SIZE - durations[i];
       }
-      sprite.tint = colors.primary;
+      sprite.tint = isBlack ? colors.primary_muted : colors.primary;
     }
 
     for (let i = noteCount; i < this.pool.length; i++) {
@@ -110,6 +118,27 @@ export class PlayerNotesRenderer extends NotesRenderer {
     }
 
     logger.draw("Notes", Date.now() - start);
+  }
+
+  private setBoundsForWhiteKey(sprite: Sprite, pitch: number, keyWidth: number): void {
+    const whitesBefore = this.countWhiteKeysBefore(pitch);
+    sprite.x = whitesBefore * keyWidth + 1;
+    sprite.width = keyWidth - 2;
+  }
+
+  private setBoundsForBlackKey(sprite: Sprite, pitch: number, keyWidth: number): void {
+    const whitesBefore = this.countWhiteKeysBefore(pitch);
+
+    sprite.x = whitesBefore * keyWidth - keyWidth * 0.25 + 1;
+    sprite.width = keyWidth / 2 - 2;
+  }
+
+  private countWhiteKeysBefore(pitch: number): number {
+    let count = 0;
+    for (let i = 0; i < pitch; i++) {
+      if (![1, 3, 6, 8, 10].includes(i % 12)) count++;
+    }
+    return count;
   }
 
   public updateDrag() {}
