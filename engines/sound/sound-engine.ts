@@ -136,10 +136,6 @@ export default class SoundEngine {
         case Action.INITIALIZE_STATE:
           this.loadNewMidi(state);
           break;
-        case Action.SET_TRANSPORT_START:
-        case Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX:
-          this.handleSeek(state);
-          break;
         case Action.CHANGE_TRACK_VOLUME:
           this.changeTracksVolume(state);
           break;
@@ -191,6 +187,7 @@ export default class SoundEngine {
     this.unit.transposeAllChannels(state);
     this.unit.setPlaybackRate(state.config.bpm);
     this.changeTracksVolume(state);
+    this.setCurrentMeasureAtStart(state);
     if (state.config.countIn) {
       this.countInController = new AbortController();
       const { signal } = this.countInController;
@@ -207,11 +204,42 @@ export default class SoundEngine {
             });
           });
         }
+        this.handleSeek(state);
         this.unit.sequencer.play();
       } catch {}
     } else {
+      this.handleSeek(state);
       this.unit.sequencer.play();
     }
+  }
+
+  private setCurrentMeasureAtStart(state: State) {
+    let currentMeasureIndex = 0;
+    const entries = Array.from(state.measuresStarts);
+
+    for (let i = 0; i < entries.length - 1; i++) {
+      const [currentIndex, currentStarts] = entries[i];
+      const [nextIndex, nextStarts] = entries[i + 1];
+
+      const currentStartValue = currentStarts[0];
+      const nextStartValue = nextStarts[0];
+
+      if (currentStartValue <= state.transport.start && nextStartValue > state.transport.start) {
+        currentMeasureIndex = currentIndex;
+        break;
+      }
+    }
+    if (entries.length > 0) {
+      const [lastIndex, lastStarts] = entries[entries.length - 1];
+      if (lastStarts[0] <= state.transport.start) {
+        currentMeasureIndex = lastIndex;
+      }
+    }
+    logger.info("CURRENT MEASURE: ", currentMeasureIndex);
+    useMidiStore.getState().dispatch({
+      type: Action.SET_CURRENT_MEASURE,
+      index: currentMeasureIndex,
+    });
   }
 
   private pause(state: State) {
