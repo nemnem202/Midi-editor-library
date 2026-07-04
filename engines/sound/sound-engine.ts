@@ -131,7 +131,7 @@ export default class SoundEngine {
           this.unit.setPlaybackRate(state.config.bpm);
           break;
         case Action.RESET_STATE:
-          this.reset();
+          this.reset(state);
           break;
         case Action.INITIALIZE_STATE:
           this.loadNewMidi(state);
@@ -141,6 +141,7 @@ export default class SoundEngine {
           break;
         case Action.SET_TRANSPOSITION:
           this.unit.transposeAllChannels(state);
+          break;
       }
     }
   }
@@ -177,7 +178,7 @@ export default class SoundEngine {
     } else if (status === "paused") {
       this.pause(state);
     } else if (status === "reset") {
-      this.reset();
+      this.reset(state);
     }
   }
 
@@ -235,7 +236,6 @@ export default class SoundEngine {
         currentMeasureIndex = lastIndex;
       }
     }
-    logger.info("CURRENT MEASURE: ", currentMeasureIndex);
     useMidiStore.getState().dispatch({
       type: Action.SET_CURRENT_MEASURE,
       index: currentMeasureIndex,
@@ -245,7 +245,6 @@ export default class SoundEngine {
   private pause(state: State) {
     this.stopCountIn();
     this.unit.sequencer.pause();
-    this.handleSeek(state);
   }
 
   private handleLoopIteration() {
@@ -279,7 +278,7 @@ export default class SoundEngine {
     });
   }
 
-  private handleSeek(state: State) {
+  private handleSeek(state: State, at?: number) {
     this._seekPending = true;
 
     if (this._batchFrame !== null) {
@@ -287,7 +286,7 @@ export default class SoundEngine {
       this._batchFrame = null;
     }
     this._metaBuffer.clear();
-    this.unit.seek(state.transport.start, state.config.ppq);
+    this.unit.seek(at !== undefined ? at : state.transport.start, state.config.ppq);
     this._metaBuffer.clear();
     setTimeout(() => {
       this._seekPending = false;
@@ -303,12 +302,15 @@ export default class SoundEngine {
     this.countInController = null;
   }
 
-  public reset() {
+  public reset(state: State) {
     logger.info("Sound engine reset");
     this.stopCountIn();
     this.unit.sequencer.pause();
     this.unit.sequencer.currentTime = 0;
-    useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });
+    useMidiStore
+      .getState()
+      .dispatch({ type: Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX, measureIndex: 0 });
+    this.handleSeek(state, 0);
   }
 
   private async changeTracksVolume(state: State) {
