@@ -412,6 +412,9 @@ export class PlayerEngine extends PianoRollEngine {
               this.cursorRenderer.unlock("drag").setCursor("default");
             },
           },
+          onDoubleClick: (e) => {
+            this.playheadRenderer.setStart(e.original);
+          },
         },
 
         Note: {},

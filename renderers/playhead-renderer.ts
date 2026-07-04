@@ -28,19 +28,24 @@ export class PlayerTacklistRenderer extends PlayheadRenderer {
   public draw(): void {
     const { width } = this.deps.app.screen;
     const currentMeasureIndex = this.state.transport.currentMeasureIndex;
-    const measuresStarts = this.state.measuresStarts;
+    const transportStart = this.state.transport.start;
     const totalDuration = this.state.transport.totalDuration;
-    const currentMeasureStarts = measuresStarts.get(currentMeasureIndex);
-    if (!currentMeasureStarts?.length) return;
-    const currentMeasureStart = currentMeasureStarts[0];
-    logger.info("Current measure start", currentMeasureStart);
     this.tracklist.clear();
-    this.tracklist.moveTo(0, totalDuration - currentMeasureStart);
-    this.tracklist.lineTo(width, totalDuration - currentMeasureStart);
+    this.tracklist.moveTo(0, totalDuration - transportStart - 1);
+    this.tracklist.lineTo(width, totalDuration - transportStart - 1);
     this.tracklist.stroke({ color: this.deps.engine.colors.primary, pixelLine: true });
   }
 
-  public setStart(e: FederatedPointerEvent): void {}
+  public setStart(e: FederatedPointerEvent): void {
+    const viewport = this.deps.viewportRenderer.container;
+    const local = viewport.toLocal(e.global);
+    const { totalDuration } = this.state.transport;
+    logger.info("Position", totalDuration - local.y);
+    this.dispatch({
+      type: Action.SET_TRANSPORT_START,
+      start: Math.min(Math.max(totalDuration - local.y, 0), totalDuration),
+    });
+  }
 
   public hidePlayhead(): void {}
 
