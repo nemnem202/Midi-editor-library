@@ -2,12 +2,13 @@ import { Container, type FederatedPointerEvent, Graphics } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
 import { Action } from "../types/actions";
 import type ViewportRenderer from "./viewport-renderer";
+import { logger } from "@/lib/logger";
 export interface PlayheadRendererDeps extends RendererDeps {
   viewportRenderer: ViewportRenderer;
 }
 export default abstract class PlayheadRenderer extends Renderer<PlayheadRendererDeps> {
   public abstract updatePlayhead(playheadPosition: number): void;
-  public abstract drawTracklist(): void;
+  public abstract draw(): void;
   public abstract setStart(e: FederatedPointerEvent): void;
 
   public abstract hidePlayhead(): void;
@@ -22,51 +23,30 @@ export class PlayerTacklistRenderer extends PlayheadRenderer {
       eventMode: "none",
     });
     this.container.addChild(this.tracklist);
-    // this.initGraphics();
   }
 
-  // public updatePlayhead(playheadPosition: number): void {}
-  public drawTracklist(): void {}
+  public draw(): void {
+    const { width } = this.deps.app.screen;
+    const currentMeasureIndex = this.state.transport.currentMeasureIndex;
+    const measuresStarts = this.state.measuresStarts;
+    const totalDuration = this.state.transport.totalDuration;
+    const currentMeasureStarts = measuresStarts.get(currentMeasureIndex);
+    if (!currentMeasureStarts?.length) return;
+    const currentMeasureStart = currentMeasureStarts[0];
+    logger.info("Current measure start", currentMeasureStart);
+    this.tracklist.clear();
+    this.tracklist.moveTo(0, totalDuration - currentMeasureStart);
+    this.tracklist.lineTo(width, totalDuration - currentMeasureStart);
+    this.tracklist.stroke({ color: this.deps.engine.colors.primary, pixelLine: true });
+  }
+
   public setStart(e: FederatedPointerEvent): void {}
 
   public hidePlayhead(): void {}
 
-  // private initGraphics(): void {
-  //   const { width } = this.deps.app.screen;
-
-  //   this.tracklist.clear();
-  //   this.tracklist.moveTo(0, 0).lineTo(width, 0).stroke({ color: "#00ff40", pixelLine: true });
-  // }
-
   public updatePlayhead(playheadPosition: number): void {
     this.deps.viewportRenderer.scrollToTick(playheadPosition);
   }
-
-  // public drawTracklist(): void {
-  //   const { start, totalDuration } = this.state.transport;
-
-  //   const { width } = this.deps.app.screen;
-
-  //   this.tracklist.clear();
-  //   this.tracklist
-  //     .moveTo(0, totalDuration - start)
-  //     .lineTo(width, totalDuration - start)
-  //     .stroke({ color: "#00ff40", pixelLine: true });
-  // }
-  // public hidePlayhead(): void {}
-
-  // public setStart(e: FederatedPointerEvent) {
-  //   const viewport = this.deps.viewportRenderer.container;
-  //   const { totalDuration } = this.state.transport;
-
-  //   const local = viewport.toLocal(e.global);
-
-  //   this.dispatch({
-  //     type: Action.SET_TRANSPORT_START,
-  //     start: Math.min(Math.max(0, totalDuration - local.y), totalDuration),
-  //     skipHistory: true,
-  //   });
-  // }
 }
 
 export class EditorPlayheadRenderer extends PlayheadRenderer {
@@ -106,7 +86,7 @@ export class EditorPlayheadRenderer extends PlayheadRenderer {
     this.playhead.x = playheadPosition;
   }
 
-  public drawTracklist(): void {
+  public draw(): void {
     const { start } = this.state.transport;
 
     this.tracklist.x = start;

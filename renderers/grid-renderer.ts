@@ -27,11 +27,12 @@ export class PlayerGridRenderer extends GridRenderer {
     const start = Date.now();
     const { width } = this.deps.app.screen;
     const measuresStarts = this.state.measuresStarts;
+    const totalDuration = this.state.transport.totalDuration;
     this.graphic.clear();
 
     for (const [index, starts] of measuresStarts) {
       for (let i = 0; i < starts.length; i++) {
-        let y = starts[i];
+        let y = totalDuration - starts[i];
         this.graphic.moveTo(0, y);
         this.graphic.lineTo(width, y);
       }

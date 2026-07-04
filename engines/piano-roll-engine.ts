@@ -198,7 +198,7 @@ export abstract class PianoRollEngine {
     this.backgroundRenderer.draw();
     this.notesRenderer.draw();
     this.grayedNotesRenderer.draw();
-    this.playheadRenderer.drawTracklist();
+    this.playheadRenderer.draw();
     this.loopRenderer.draw();
     this.viewportRenderer.draw();
     if (this.isMobile) this.viewportRenderer.findOptimizedZoom();
@@ -259,7 +259,7 @@ export abstract class PianoRollEngine {
     if (actions.has(Action.SET_TRANSPORT_START)) {
       const { start } = this.state.transport;
 
-      this.playheadRenderer.drawTracklist();
+      this.playheadRenderer.draw();
       this.pianoKeyboardRenderer.draw();
     }
     if (actions.has(Action.SET_REPEATS)) {
@@ -396,20 +396,30 @@ export class PlayerEngine extends PianoRollEngine {
       this.eventsDirtyFlags.add(Event.Resize);
     });
 
-    if (!this.isMobile) {
-      this.pointerHandler = new PointerActionHandler(
-        this.app,
+    this.pointerHandler = new PointerActionHandler(
+      this.app,
 
-        {
-          default: {},
-
-          Note: {},
-
-          Keyboard: {},
+      {
+        default: {
+          onDrag: {
+            onStart: (e) => {
+              this.cursorRenderer.unlock("drag").setCursor("grabbing");
+            },
+            onMove: (e) => {
+              this.viewportRenderer.tryPan(e.original, e.lastPos, "lockX");
+            },
+            onEnd: (e) => {
+              this.cursorRenderer.unlock("drag").setCursor("default");
+            },
+          },
         },
-        { dragThreshold: 10 }
-      );
-    }
+
+        Note: {},
+
+        Keyboard: {},
+      },
+      { dragThreshold: 10 }
+    );
   }
 
   protected initRenderers(): void {

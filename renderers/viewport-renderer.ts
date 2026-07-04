@@ -40,9 +40,13 @@ export default abstract class ViewportRenderer extends Renderer<ViewportRenderer
     this.deps.eventsDirtyFlags.add(Event.Viewport);
   }
 
-  public tryPan(e: FederatedPointerEvent, lastPos: { x: number; y: number }) {
-    this.pendingDx += e.global.x - lastPos.x;
-    this.pendingDy += e.global.y - lastPos.y;
+  public tryPan(
+    e: FederatedPointerEvent,
+    lastPos: { x: number; y: number },
+    lock?: "lockX" | "lockY"
+  ) {
+    if (lock !== "lockX") this.pendingDx += e.global.x - lastPos.x;
+    if (lock !== "lockY") this.pendingDy += e.global.y - lastPos.y;
     this.deps.eventsDirtyFlags.add(Event.Viewport);
   }
 
