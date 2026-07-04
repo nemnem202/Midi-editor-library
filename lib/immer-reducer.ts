@@ -144,14 +144,12 @@ export const midiReducer = (draft: Draft<State>, action: MidiAction) => {
       break;
 
     case Action.SET_COUNT_INT:
-      logger.info("Set count in", action.countin);
       draft.config.countIn = action.countin;
       break;
     case Action.SET_REPEATS:
       draft.config.repeats = action.repeats;
       break;
     case Action.SET_BPM_PRACTICE:
-      logger.info("Bpm practice update", action.bpm);
       draft.config.bpmPractice = action.bpm;
       break;
     case Action.SET_TRANSPOSITION:

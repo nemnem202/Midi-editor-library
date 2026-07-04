@@ -17,7 +17,6 @@ export class PracticeLogic {
     }
 
     const nextIndex = config.loop.currentRepeatIndex + 1;
-    logger.info("Repeat", config.loop.currentRepeatIndex, "ended");
     return {
       repeatIndex: nextIndex,
       targetBpm: config.bpm + config.bpmPractice * nextIndex,

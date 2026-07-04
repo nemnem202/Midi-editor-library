@@ -290,10 +290,7 @@ export class PlayerViewportRenderer extends ViewportRenderer {
       }
     }
 
-    if (!hasNotes) {
-      logger.info("Aucune note trouvée");
-      return;
-    }
+    if (!hasNotes) return;
 
     const { width } = this.deps.app.screen;
     const TOTAL_KEYS = 128;

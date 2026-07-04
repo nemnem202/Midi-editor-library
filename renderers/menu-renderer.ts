@@ -1,6 +1,5 @@
 import { Container, type FederatedPointerEvent, Graphics, Text, TextStyle } from "pixi.js";
 import Renderer, { type RendererDeps } from "./renderer";
-import { logger } from "../lib/logger";
 
 export interface MenuRendererDeps extends RendererDeps {}
 
@@ -15,27 +14,19 @@ export default class MenuRenderer extends Renderer<MenuRendererDeps> {
   private menuItems: MenuItem[] = [
     {
       label: "Automatic generation",
-      action: () => {
-        logger.info("auto");
-      },
+      action: () => {},
     },
     {
       label: "Humanize",
-      action: () => {
-        logger.info("humanize");
-      },
+      action: () => {},
     },
     {
       label: "Quantize",
-      action: () => {
-        logger.info("quantize");
-      },
+      action: () => {},
     },
     {
       label: "Add chord",
-      action: () => {
-        logger.info("add chord");
-      },
+      action: () => {},
     },
   ];
   constructor(deps: MenuRendererDeps) {

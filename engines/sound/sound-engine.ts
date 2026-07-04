@@ -105,7 +105,6 @@ export default class SoundEngine {
           index: currentMeasure,
         });
       } else if (type === "LoopEnd") {
-        logger.info("Sound engine loop end (batched)");
         this.handleLoopIteration();
       }
     });
@@ -256,7 +255,6 @@ export default class SoundEngine {
     const next = this.practice.getNextIterationParams(state);
 
     if (!next) {
-      logger.info("All repeats done, stopping.");
       useMidiStore.getState().dispatch({ type: Action.SET_CURRENT_MEASURE, index: 0 });
       useMidiStore.getState().dispatch({
         type: Action.SET_LOOP,
@@ -268,8 +266,6 @@ export default class SoundEngine {
       });
       return;
     }
-
-    logger.info("Next iteration, repeatIndex:", next.repeatIndex);
 
     this.unit.setPlaybackRate(next.targetBpm);
     this.unit.transposeAllChannels(state, next.repeatIndex);
@@ -305,7 +301,6 @@ export default class SoundEngine {
   }
 
   public reset(state: State) {
-    logger.info("Sound engine reset");
     this.stopCountIn();
     this.unit.sequencer.pause();
     this.unit.sequencer.currentTime = 0;

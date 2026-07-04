@@ -53,7 +53,6 @@ export const useMidiStore = create<MidiStore>((set, get) => ({
 
     let newUndoStack = undoStack;
     if (action.useHistory) {
-      logger.info("Action placed in history, state has been deep cloned");
       newUndoStack = [...undoStack, deepCloneState(state)].slice(-50);
     }
 

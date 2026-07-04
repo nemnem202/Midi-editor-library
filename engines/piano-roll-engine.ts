@@ -261,7 +261,6 @@ export abstract class PianoRollEngine {
       actions.has(Action.SET_TRANSPORT_START) ||
       actions.has(Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX)
     ) {
-      logger.info("Transport start set: ", this.state.transport.start);
       this.playheadRenderer.draw();
       this.pianoKeyboardRenderer.draw();
     }
