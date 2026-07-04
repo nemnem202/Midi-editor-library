@@ -40,7 +40,7 @@ function Content() {
 
     const config: PianoRollConfig = {
       root_div: rootDiv.current,
-      pianoKeyboardSize: 100,
+      pianoKeyboardSize: size === "sm" ? 50 : 100,
       strategy: "Player",
       isMobile: size === "sm",
       colors: {
