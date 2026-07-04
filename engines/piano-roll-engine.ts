@@ -417,6 +417,7 @@ export class PlayerEngine extends PianoRollEngine {
             },
           },
           onDoubleClick: (e) => {
+            if (this.state.transport.status === "playing") return;
             this.playheadRenderer.setStart(e.original);
           },
         },

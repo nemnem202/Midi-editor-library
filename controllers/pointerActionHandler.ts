@@ -90,7 +90,7 @@ export class PointerActionHandler {
 
   private readonly dragThreshold: number;
   private readonly longPressDelay: number;
-  private readonly doubleClickDelay = 1000;
+  private readonly doubleClickDelay = 300;
 
   constructor(
     private readonly app: Application,
