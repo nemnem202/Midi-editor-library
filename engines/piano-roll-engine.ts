@@ -72,6 +72,8 @@ export abstract class PianoRollEngine {
   protected lastRenderWidth = 0;
   protected lastRenderHeight = 0;
 
+  protected blockAutoScroll = false;
+
   public state: State;
 
   protected soundEngine: SoundEngine | null = null;
@@ -404,12 +406,14 @@ export class PlayerEngine extends PianoRollEngine {
           onDrag: {
             onStart: (e) => {
               this.cursorRenderer.unlock("drag").setCursor("grabbing");
+              this.blockAutoScroll = true;
             },
             onMove: (e) => {
               this.viewportRenderer.tryPan(e.original, e.lastPos, "lockX");
             },
             onEnd: (e) => {
               this.cursorRenderer.unlock("drag").setCursor("default");
+              this.blockAutoScroll = false;
             },
           },
           onDoubleClick: (e) => {
@@ -506,7 +510,9 @@ export class PlayerEngine extends PianoRollEngine {
 
     const currentTick = convertSecondsToTick(currentTime, currentTempo, config.ppq);
 
-    this.playheadRenderer.updatePlayhead(currentTick);
+    this.blockAutoScroll
+      ? this.playheadRenderer.updatePlayhead(currentTick)
+      : this.viewportRenderer.scrollToTick(currentTick);
 
     const currentTrack = tracks.find((t) => t.id === currentTrackId);
     if (!currentTrack) return;

@@ -16,6 +16,7 @@ export default abstract class PlayheadRenderer extends Renderer<PlayheadRenderer
 
 export class PlayerTacklistRenderer extends PlayheadRenderer {
   private tracklist = new Graphics({ label: "Tracklist" });
+  private playhead = new Graphics({ label: "Playhead" });
   constructor(deps: PlayheadRendererDeps) {
     super(deps);
     this.container = new Container({
@@ -23,6 +24,13 @@ export class PlayerTacklistRenderer extends PlayheadRenderer {
       eventMode: "none",
     });
     this.container.addChild(this.tracklist);
+    this.container.addChild(this.playhead);
+    this.playhead.clear();
+    const { width } = this.deps.app.screen;
+    this.playhead
+      .moveTo(0, 0)
+      .lineTo(width, 0)
+      .stroke({ color: this.deps.engine.colors.secondary, pixelLine: true });
   }
 
   public draw(): void {
@@ -40,17 +48,22 @@ export class PlayerTacklistRenderer extends PlayheadRenderer {
     const viewport = this.deps.viewportRenderer.container;
     const local = viewport.toLocal(e.global);
     const { totalDuration } = this.state.transport;
-    logger.info("Position", totalDuration - local.y);
     this.dispatch({
       type: Action.SET_TRANSPORT_START,
       start: Math.min(Math.max(totalDuration - local.y, 0), totalDuration),
     });
   }
 
-  public hidePlayhead(): void {}
+  public hidePlayhead(): void {
+    this.playhead.visible = false;
+  }
 
   public updatePlayhead(playheadPosition: number): void {
-    this.deps.viewportRenderer.scrollToTick(playheadPosition);
+    const { totalDuration } = this.state.transport;
+    if (!this.playhead.visible) {
+      this.playhead.visible = true;
+    }
+    this.playhead.y = totalDuration - playheadPosition + 1;
   }
 }
 
