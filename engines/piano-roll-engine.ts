@@ -234,7 +234,6 @@ export abstract class PianoRollEngine {
       this.actionsDirtyFlags.has(Action.RENDER_ALL) ||
       this.actionsDirtyFlags.has(Action.RESET_STATE)
     ) {
-      logger.info("Reset state !");
       this.drawAll();
       return;
     }
@@ -258,9 +257,11 @@ export abstract class PianoRollEngine {
     if ([...actions].some((a) => PIANO_KEYBOARD_ACTIONS.includes(a))) {
       this.pianoKeyboardRenderer.draw();
     }
-    if (actions.has(Action.SET_TRANSPORT_START)) {
-      const { start } = this.state.transport;
-
+    if (
+      actions.has(Action.SET_TRANSPORT_START) ||
+      actions.has(Action.SET_TRANSPORT_START_FROM_MEASURE_INDEX)
+    ) {
+      logger.info("Transport start set: ", this.state.transport.start);
       this.playheadRenderer.draw();
       this.pianoKeyboardRenderer.draw();
     }
@@ -273,13 +274,10 @@ export abstract class PianoRollEngine {
     }
 
     if (actions.has(Action.SET_TRANSPORT_STATUS)) {
-      if (this.state.transport.status === "playing") {
-        this.pianoKeyboardRenderer.draw();
-        this.onSoundEngineTickUpdate();
-      }
-
-      if (!SoundEngine.get()?.isPlaying) {
+      if (this.state.transport.status !== "playing") {
         this.playheadRenderer.hidePlayhead();
+      } else {
+        this.viewportRenderer.scrollToTick(this.state.transport.start);
       }
     }
   }

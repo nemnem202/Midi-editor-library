@@ -31,6 +31,7 @@ export class PlayerTacklistRenderer extends PlayheadRenderer {
       .moveTo(0, 0)
       .lineTo(width, 0)
       .stroke({ color: this.deps.engine.colors.secondary, pixelLine: true });
+    this.playhead.visible = false;
   }
 
   public draw(): void {

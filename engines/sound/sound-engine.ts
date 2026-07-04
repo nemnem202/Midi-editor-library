@@ -236,10 +236,12 @@ export default class SoundEngine {
         currentMeasureIndex = lastIndex;
       }
     }
-    useMidiStore.getState().dispatch({
-      type: Action.SET_CURRENT_MEASURE,
-      index: currentMeasureIndex,
-    });
+    setTimeout(() => {
+      useMidiStore.getState().dispatch({
+        type: Action.SET_CURRENT_MEASURE,
+        index: currentMeasureIndex,
+      });
+    }, 0);
   }
 
   private pause(state: State) {
