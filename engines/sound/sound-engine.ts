@@ -56,7 +56,7 @@ export default class SoundEngine {
     this.instance.noteTracker = new NoteTracker(synth);
 
     const state = useMidiStore.getState().state;
-    if (state?.rawMidiBuffer) this.instance.loadNewMidi(state);
+    if (state?.rawMidiBuffer.length) this.instance.loadNewMidi(state);
 
     return this.instance;
   }
