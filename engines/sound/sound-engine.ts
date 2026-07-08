@@ -100,6 +100,7 @@ export default class SoundEngine {
     this._metaBuffer.forEach((data, type) => {
       if (type === "Bar") {
         const currentMeasure = parseInt(data, 10);
+        logger.info("Current measure: ", currentMeasure);
         useMidiStore.getState().dispatch({
           type: Action.SET_CURRENT_MEASURE,
           index: currentMeasure,

@@ -6,6 +6,7 @@ import useScreen from "@/hooks/use-screen";
 import { TrackSelect } from "@/components/features/game/game-assets";
 import { ZoomInButton, ZoomOutButton } from "@/components/ui/custom-buttons";
 import { Action } from "../types/actions";
+import { ClientOnly } from "vike-react/ClientOnly";
 
 export default function PianoRoll() {
   const state = useMidiStore((s) => s.state);
@@ -22,7 +23,11 @@ export default function PianoRoll() {
 
   if (!state) return null;
 
-  return <Content />;
+  return (
+    <ClientOnly>
+      <Content />
+    </ClientOnly>
+  );
 }
 
 function Content() {
